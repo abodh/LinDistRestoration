@@ -1,5 +1,0 @@
-syn-austin-TDgrid-v03\syn-austin-TDgrid-v03\syn-austin-D_only-v03\P1R\base\opendss\p1rhs0_1247
-
-link to test cases:
-https://data.openei.org/s3_viewer?bucket=oedi-data-lake&prefix=SMART-DS
-
