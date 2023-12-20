@@ -1,0 +1,22 @@
+Metadata-Version: 2.1
+Name: power-distribution-restoration
+Version: 0.0.1
+Summary: 3-Phase unbalanced power distribution restoration due to single or multiple faults
+Author: Abodh Poudyal
+Author-email: abodh.poudyal@wsu.edu
+License: MIT
+Classifier: Development Status :: 1 - Planning
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Intended Audience :: Science/Research
+Requires-Python: >=3.6
+License-File: LICENSE.txt
+
+# power-distribution-restoration
+In progress ... 
+
+# install packages
+`conda create --name <env_name> --file requirements.txt 
+OR
+`conda env create -f environment.yml
