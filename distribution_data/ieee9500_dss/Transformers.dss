@@ -65,4 +65,4 @@ New Transformer.FEEDER_REG3C phases=1  windings=2  buses=(regxfmr_HVMV11sub3_LSB
 ! Voltage regulator controls
 New RegControl.FEEDER_REG3A transformer=FEEDER_REG3A  winding=2 vreg=123  ptratio=60 band=2 
 New RegControl.FEEDER_REG3B transformer=FEEDER_REG3B  winding=2 vreg=123  ptratio=60 band=2 
-New RegControl.FEEDER_REG3C transformer=FEEDER_REG3C  winding=2 vreg=123  ptratio=60 band=2 
+New RegControl.FEEDER_REG3C transformer=FEEDER_REG3C  winding=2 vreg=123  ptratio=60 band=2

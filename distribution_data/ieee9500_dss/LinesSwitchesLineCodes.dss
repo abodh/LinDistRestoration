@@ -211,7 +211,7 @@ New Line.LN5799561-2         bus1=L3081380            bus2=D5799561-2_INT      l
 New Line.LN5799561-1         bus1=M1142843            bus2=L3081380            length=0.110589    units=km Linecode=3PH_H-397_ACSR397_ACSR397_ACSR2/0_ACSR normamps=450 emergamps=600
        
 ! S2 to S3 upgraded conductor path - 3-ph tie from node m1089112.3 to node M1069310
-New Line.LN0138609_sw        bus1=M1089112            bus2=D6138609-1_INT     switch=True r1=0.001 r0=0.001 x1=0.001 x0=0.001 C1=0 C0=0 length=0.001  
+New Line.LN0138609_sw        bus1=M1089112            bus2=D6138609-1_INT      switch=True r1=0.001 r0=0.001 x1=0.001 x0=0.001 C1=0 C0=0 length=0.001  
 New Line.LN6138609-1         bus1=D6138609-1_INT      bus2=L2691951            length=0.06504075  units=km Linecode=3PH_H-2/0_ACSR2/0_ACSR2/0_ACSR2_ACSR normamps=225 emergamps=300 
 New Line.LN6292465-2         bus1=L2691951            bus2=N1139542            length=0.023117766 units=km Linecode=3PH_H-2/0_ACSR2/0_ACSR2/0_ACSR2_ACSR normamps=225 emergamps=300 
 New Line.LN6292465-3         bus1=N1139542            bus2=P827523             length=0.021595342 units=km Linecode=3PH_H-2/0_ACSR2/0_ACSR2/0_ACSR2_ACSR normamps=225 emergamps=300 

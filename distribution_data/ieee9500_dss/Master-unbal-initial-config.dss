@@ -60,7 +60,6 @@ LatLongCoords LatLongCoords.dss
 
 New Energymeter.m1 Element=Line.LN5710794-3 Terminal=1
 
-
 Set Maxiterations=30     ! Sometimes the solution takes more than the default 15 iterations
 Set MaxControlIter=100
 

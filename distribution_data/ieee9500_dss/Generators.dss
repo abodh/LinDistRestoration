@@ -48,4 +48,3 @@ New Generator.MicroTurb-4 bus1=m1069-MT1 kV=0.480 kW=200 kVA=250 pf=0.9 Xdp=0.27
 New Transformer.1069-MT1 XHL=5.75  kVA=300 Conns=[wye, Delta]
 ~ wdg=1 bus=M1069215.1.2.3.4  kV=12.47
 ~ wdg=2 bus=M1069DER480-1     kV=0.480
-
