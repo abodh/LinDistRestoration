@@ -1,1 +1,10 @@
-site_name: dist-restoration
+site_name: ldrestoration
+
+nav:
+  - index.md
+  - dist-restoration: ldrestoration.md
+
+plugins: 
+  - mkdocstrings
+
+theme: readthedocs

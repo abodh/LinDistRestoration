@@ -2,8 +2,8 @@ import opendssdirect as dss
 import pandas as pd
 import numpy as np
 import networkx as nx
-from folium import Map, CircleMarker, PolyLine
 import logging
+
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 from decors import timethis
@@ -34,17 +34,7 @@ class DSSpy:
         # load all the lines and elements and this comes after the DER switches are introduced
         self.lines = dss.Lines
         self.linecodes = dss.LineCodes
-        self.pdelements = dss.PDElements  
-        
-        # plot color codes for distribution system plots
-        self.colorcodes = {
-            # key: circuit element type 
-            # values: color, linewidth
-            'transformer': ['green', 4],
-            'switch': ['red', 4],
-            'line': ['black', 1.5],
-            'reactor': ['gray', 8]
-        }                   
+        self.pdelements = dss.PDElements                   
      
     def __DER_inclusion(self):    
         self.DERs = []
@@ -69,6 +59,32 @@ class DSSpy:
             dss.Text.Command(f'Open Line.{each_DERs["name"]}')     
             
         return self.DERs
+    
+    def __get_zmatrix(self):
+        
+        if ((len(dss.CktElement.BusNames()[0].split('.')) == 4) or 
+            (len(dss.CktElement.BusNames()[0].split('.')) == 1)):
+            
+            # this is the condition check for three phase since three phase is either represented by bus_name.1.2.3 or bus_name    
+            z_matrix = np.array(self.lines.RMatrix()) + 1j * np.array(self.lines.XMatrix())
+            z_matrix = z_matrix.reshape(3, 3)
+            
+            return z_matrix
+        
+        else:
+            
+            # for other than 3 phases            
+            active_phases = [int(phase) for phase in dss.CktElement.BusNames()[0].split('.')[1:]]
+            z_matrix = np.zeros((3, 3), dtype=complex)
+            r_matrix = self.lines.RMatrix()
+            x_matrix = self.lines.XMatrix()
+            counter = 0
+            for _, row in enumerate(active_phases):
+                for _, col in enumerate(active_phases):
+                    z_matrix[row - 1, col - 1] = complex(r_matrix[counter], x_matrix[counter])
+                    counter = counter + 1
+
+            return z_matrix
                 
     def get_splitphase_primary(self):    
         '''
@@ -127,42 +143,7 @@ class DSSpy:
             network_tree.nodes[node]['lat'] = dss.Bus.Y()
             network_tree.nodes[node]['lon'] = dss.Bus.X()
 
-        return network_tree, normally_open_components
-        
-    def plot_overall_network(self,
-                             network_tree,
-                             network_graph, 
-                             plot_network=True):
-        if plot_network:
-                                    
-            # Create a folium map centered at a specific location within the system
-            distribution_map = Map(location=[network_tree.nodes[next(iter(network_tree.nodes))]['lat'],
-                                             network_tree.nodes[next(iter(network_tree.nodes))]['lon']], 
-                                   zoom_start=20,
-                                   max_zoom=50)
-
-            # circle markers ars nodes of the system
-            for node, data in network_tree.nodes(data=True):
-                lat, lon = data['lat'], data['lon']
-                CircleMarker([lat, lon],
-                             radius=3, 
-                             color='blue', 
-                             tooltip=f"<span style='font-size:1.5em;'>{node}</span>").add_to(distribution_map)
-
-            # These polylines connect nodes and distinguish their colors as per elements (transformer, line, switch)
-            for from_node, to_node, data in network_graph.edges(data=True):
-                source_data = network_tree.nodes[from_node]
-                target_data = network_tree.nodes[to_node]            
-                points = [[source_data['lat'], source_data['lon']], [target_data['lat'], target_data['lon']]]            
-                PolyLine(points,
-                         color=self.colorcodes[data['element'] if not data['is_switch'] else 'switch'][0], 
-                         weight=self.colorcodes[data['element'] if not data['is_switch'] else 'switch'][1], 
-                         opacity=1,
-                         tooltip=f"<span style='font-size:1.5em;'>{data['element'] if not data['is_switch'] else 'switch'}</span>").add_to(distribution_map)
-            
-            
-            # Save the map to an HTML file
-            distribution_map.save("distributionmap.html")
+        return network_tree, normally_open_components    
     
     def get_transferred_loads(self):
         
@@ -278,32 +259,6 @@ class DSSpy:
         obtain all the power delivery elements
         '''
              
-        def get_zmatrix(dsslineobj):
-        
-            if (len(dss.CktElement.BusNames()[0].split('.')) == 4) or (len(dss.CktElement.BusNames()[0].split('.')) == 1):
-                
-                # this is the condition check for three phase since three phase is either represented by bus_name.1.2.3 or bus_name    
-                z_matrix = np.array(dsslineobj.RMatrix()) + 1j * np.array(dsslineobj.XMatrix())
-                z_matrix = z_matrix.reshape(3, 3)
-                
-                return z_matrix
-            
-            else:
-                
-                # for other than 3 phases            
-                active_phases = [int(phase) for phase in dss.CktElement.BusNames()[0].split('.')[1:]]
-                z_matrix = np.zeros((3, 3), dtype=complex)
-                r_matrix = dsslineobj.RMatrix()
-                x_matrix = dsslineobj.XMatrix()
-                counter = 0
-                for _, row in enumerate(active_phases):
-                    for _, col in enumerate(active_phases):
-                        z_matrix[row - 1, col - 1] = complex(r_matrix[counter], x_matrix[counter])
-                        counter = counter + 1
-        
-                return z_matrix
-        
-        
         element_activity_status = self.pdelements.First()
         element_data_list = []
 
@@ -319,7 +274,7 @@ class DSSpy:
                         'element': element_type,
                         # from opendss manual -> length units = {none|mi|kft|km|m|ft|in|cm}
                         'length_unit': dss.Lines.Units(),
-                        'z_matrix': get_zmatrix(dss.Lines),
+                        'z_matrix': self.__get_zmatrix(),
                         'length': dss.Lines.Length(),
                         'from_bus': dss.Lines.Bus1().split('.')[0],
                         'to_bus': dss.Lines.Bus2().split('.')[0],
