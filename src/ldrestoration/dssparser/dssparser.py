@@ -30,6 +30,8 @@ class DSSpy:
         if DER_inclusions:
             self.DERs = self.__DER_inclusion()     
             logging.info("The DERs virtual switches have been added successfully.")
+        else:
+            logging.info("The DERs virtual switches are not included due to exclusion of DERs.")
 
         # load all the lines and elements and this comes after the DER switches are introduced
         self.lines = dss.Lines

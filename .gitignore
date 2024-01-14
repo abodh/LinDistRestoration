@@ -4,4 +4,5 @@ __pycache__
 *.DSV
 *.dbl
 p1rhs0_1247
-dist_restoration.egg-info
+*.egg-info
+.vscode
