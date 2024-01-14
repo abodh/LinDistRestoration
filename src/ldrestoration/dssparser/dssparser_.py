@@ -92,11 +92,12 @@ class TransformerHandler:
         transformer_data = []  
         while transformer_flag:
             each_transformer = dict(name = self.dss_instance.Transformers.Name(),
-                                   basekV = self.dss_instance.Transformers.NumWindings(),
-                                   connected_from = self.dss_instance.CktElement.BusNames()[0].split('.')[0],
-                                   connected_to = self.dss_instance.CktElement.BusNames()[0].split('.')[1])
+                                    numwindings = self.dss_instance.Transformers.NumWindings(),
+                                    connected_from = self.dss_instance.CktElement.BusNames()[0].split('.')[0],
+                                    connected_to = self.dss_instance.CktElement.BusNames()[1].split('.')[0])
             
             transformer_data.append(each_transformer)
+            transformer_flag = self.dss_instance.Transformers.Next() 
         return transformer_data   
 
 
@@ -161,7 +162,7 @@ class PDElementHandler:
             
             # capacitor is a shunt element  and is not included
             if element_type != 'capacitor':                
-                logging.debug("Capacitors are shunt elements and are not modeled in this work. Regulators are not modeled as well.")
+                #"Capacitors are shunt elements and are not modeled in this work. Regulators are not modeled as well."
                 
                 if element_type == 'line':
                     each_element_data = {
@@ -180,7 +181,9 @@ class PDElementHandler:
                 
                 else:
                     # everything other than lines but not capacitors i.e. transformers, reactors etc.
-                    logging.debug("The impedance matrix for transformers and reactors are modeled as a shorted line here. Need to work on this for future cases.")
+                    # The impedance matrix for transformers and reactors are modeled as a shorted line here. 
+                    # Need to work on this for future cases and replace with their zero sequence impedance may be
+                    
                     each_element_data = {
                     'name': self.dss_instance.CktElement.Name().split('.')[1],
                     'element': element_type,
@@ -235,6 +238,7 @@ class NetworkHandler:
             EOFError (source): This is raised when a source does not exist in the tree i.e. the bus of the distribution model
         """        
         if self.bus_names is None:
+            logging.info("Bus names not provided. So extracting it from the base network.")
             self.bus_names = self.dss_instance.Circuit.AllBusNames()
         
         if self.pdelements_data is None and self.pdelement_handler is None:
@@ -244,9 +248,9 @@ class NetworkHandler:
                 )
         
         if self.source is not None and self.source not in self.bus_names:
-            logging.warning("The source must be one of the nodes")
+            logging.warning("The source must be one of the existing buses (nodes) in the distribution model.")
             raise EOFError(
-                "Please provide a valid source. A source must be an existing node in the distribution model"
+                "Please provide a valid source. A source must be an existing bus (node) in the distribution model"
                 )
     
     def __set_node_coordinates(self, network_tree: nx.DiGraph) -> None:
@@ -323,38 +327,61 @@ class NetworkHandler:
 
 class LoadHandler:
     # to do: condition for delta connected loads
-    # to do: considering secondary of the networks or not -> with this consideration network and transformer handlers 
-    # should be optional and only verified for primary referred loads currently only transfers to primary    
     def __init__(self, 
                  dss_instance: ModuleType,
-                 network_handler: NetworkHandler,
-                 transformer_handler: TransformerHandler,                  
+                 network_handler: Optional[NetworkHandler] = None,
+                 transformer_handler: Optional[TransformerHandler] = None, 
+                 include_secondary_network: Optional[bool] = False,                 
                  bus_names: Optional[list[str]] = None) -> None:
         
         """Initialize a LoadHandler instance. This instance deals with all the loads in the distribution system. 
 
         Args:
             dss_instance (ModuleType): redirected opendssdirect instance
-            network_handler (NetworkHandler): Directed network tree of the distribution model
-            transformer_handler (TransformerHandler): Instance of TransformerHandler. Defaults to None.
+            network_handler (Optional[NetworkHandler]): Directed network tree of the distribution model, Defaults to None
+            transformer_handler (Optional[TransformerHandler]): Instance of TransformerHandler. Defaults to None.
+            include_secondary_network (Optional[bool]): Whether the secondary network is to be considered or not, Defaults to False
             bus_names (Optional[list[str]]):Names of all the buses (nodes) in the distribution model
         """        
         
         self.dss_instance = dss_instance         
         self.network_handler = network_handler
         self.transformer_handler = transformer_handler
+        self.include_secondary_network = include_secondary_network
         
         # since bus_names is required for any methods in LoadHandler, we rather check it in the initialization
-        self.bus_names = self.dss_instance.Circuit.AllBusNames() if bus_names is None else bus_names
+        self.bus_names = self.dss_instance.Circuit.AllBusNames() if bus_names is None else bus_names        
+        self.downstream_nodes_from_primary = None
+        
+        # validate if the required inputs are in existence
+        self.__load_input_validator()
 
-    # Abodh: CHECK THIS IN THE FUTURE WORK
     def __load_input_validator(self) -> None:
             """This is to be checked in the future. Network and Transformer handler should be optional
             and only available if loads are to be referred to the primary."""
-            pass
+            
+            if not self.include_secondary_network and (not self.transformer_handler and not self.network_handler):
+                # if we do not want secondary and we do not pass any handlers then there must be an error
+                logging.warning("You need to provide NetworkHandler() and TransformerHandler as arguments to LoadHandler()")
+                raise NotImplementedError(
+                "To refer the loads to primary, both NetworkHandler and TransformerHandler are required.")  
+    
+    def get_loads(self) -> None:
         
-    def get_loads(self) -> pd.DataFrame:
-        """Extract load information for each bus(node) for each phase. This method extracts load on the exact bus(node) as modeled in the distribution model.
+        if self.include_secondary_network:
+            # get all loads as they appear in the secondary
+            logging.info("Fetching the loads as they appear on the secondary")
+            self.get_all_loads()
+        else:
+            # get primarry referred loads
+            logging.info("Referring the loads back to the primary node of the distribution transformer.")
+            self.get_primary_referred_loads()
+             
+        
+        
+    def get_all_loads(self) -> pd.DataFrame:
+        """Extract load information for each bus(node) for each phase. This method extracts load on the exact bus(node) as 
+        modeled in the distribution model, including secondary.
 
         Returns:
             load_per_phase(pd.DataFrame): Per phase load data in a pandas dataframe
@@ -392,7 +419,7 @@ class LoadHandler:
                     connected_bus = bus_split[0]
                     bus_index = self.bus_names.index(connected_bus)  
                     load_per_phase["name"][bus_index] = self.dss_instance.Loads.Name()
-                    P_values = nonzero_power[::2]  # Extract P values (every other element starting from the first)
+                    P_values = nonzero_power[::2]   # Extract P values (every other element starting from the first)
                     Q_values = nonzero_power[1::2]  # Extract Q values (every other element starting from the second)
                     for phase_index in range(3):
                         load_per_phase[f"P{phase_index + 1}"][bus_index] += round(P_values[phase_index],2)
@@ -415,23 +442,21 @@ class LoadHandler:
         return pd.DataFrame(load_per_phase)
 
     
-    def get_transferred_loads(self) -> tuple[pd.DataFrame, list[list[str]]]:
+    def get_primary_referred_loads(self) -> pd.DataFrame:
         """Transfer all the secondary nodes to the primary corresponding to each split phase transformer. 
         Also returns the downstream nodes from the split phase transformers.
 
         Returns:
-            loads_df(pd.DataFrame): Per phase load data in a pandas dataframe with secondary transferred to primary
-            downstream_nodes_from_primary (list[list[str]]]): List of downstream nodes from the primary of split phase transformer
+            primary_loads_df(pd.DataFrame): Per phase load data in a pandas dataframe with secondary transferred to primary
         """
-        # self.__load_input_validator()
-        # 
-        
-        downstream_nodes_from_primary = []  
+        self.downstream_nodes_from_primary = []  
         _, network_tree, _ = self.network_handler.network_topology()
                 
         # obtain the relation between the primary phase and secondary bus in splitphase transformer
         split_phase_primary = self.transformer_handler.get_splitphase_primary()
-        loads_df = self.get_loads()
+        
+        # initially this is the secondary load but will be changed to reflect the primary load referral
+        primary_loads_df = self.get_all_loads()
         
         for xfrmr_secondary_node, primary_phase in split_phase_primary.items():
             
@@ -447,33 +472,30 @@ class LoadHandler:
             
             # extend the xfmr secondary and downstream in the removal list for future
             # since we are aggregating these loads in the primary, removing them will reduce computational burden
-            downstream_nodes_from_primary.extend(list(xfrmr_downstream_nodes)) 
-            downstream_nodes_from_primary.extend([xfrmr_secondary_node])          
+            self.downstream_nodes_from_primary.extend(list(xfrmr_downstream_nodes)) 
+            self.downstream_nodes_from_primary.extend([xfrmr_secondary_node])          
             
             for load_node in xfrmr_downstream_nodes:
                 load_bus_index = self.bus_names.index(load_node)   
                 # if np.any(loads_df.iloc[loads_df.index.get_loc(secondary_bus_index), 1:].to_numpy() > 0):            
-                loads_df.loc[primary_bus_index, f"P{primary_phase[0]}"] += (loads_df["P1"][load_bus_index] +
-                                                                            loads_df["P2"][load_bus_index])                
+                primary_loads_df.loc[primary_bus_index, f"P{primary_phase[0]}"] += (primary_loads_df["P1"][load_bus_index] +
+                                                                                    primary_loads_df["P2"][load_bus_index])                
                 # drop the secondaries from the dataframe
-                loads_df.drop(load_bus_index, inplace=True)  
-                loads_df.drop(secondary_bus_index, inplace=True)  
+                primary_loads_df.drop(load_bus_index, inplace=True)  
+                primary_loads_df.drop(secondary_bus_index, inplace=True)  
         
         # reset the loads dataframe to its original index
-        loads_df.reset_index(inplace=True, drop=True)
+        primary_loads_df.reset_index(inplace=True, drop=True)
         
-        # update the tree to remove the secondaries from the tree
-        # network_tree.remove_nodes_from(downstream_nodes_removal)
-        
-        return loads_df, downstream_nodes_from_primary    
+        return primary_loads_df    
 
 
 class DSSManager:
     def __init__(self,
                  dssfile: str,
-                 DER_inclusions: bool =True,
+                 include_DERs: bool =True,
                  DER_pf: float = 0.9,
-                 include_secondary: bool = False) -> None:
+                 include_secondary_network: bool = False) -> None:
         
         logging.info(f'Initialize DSSManager')
         
@@ -481,7 +503,7 @@ class DSSManager:
 
         Args:
             dssfile (str): path of the dss master file (currently only supports OpenDSS files)
-            DER_inclusions (bool, optional): Check whether to include DERs or not. Defaults to True.
+            include_DERs (bool, optional): Check whether to include DERs or not. Defaults to True.
             DER_pf (float, optional): Constant power factor of DERs. Defaults to 0.9.
             include_secondary (bool, optional): Check whether to include secondary network or not. Defaults to False.
         """
@@ -490,17 +512,36 @@ class DSSManager:
         self.dss = dss
         self.dss.Text.Command(f"Redirect {self.dssfile}")
         
-        self.bus_names = self.dss.Circuit.AllBusNames()     # extract all bus names
-        self.source = self.bus_names[0]                     # Typically the first bus is the source
-        self.DER_inclusions = DER_inclusions                # variable to check whether to include DERs or not
-        self.DERs = []                                      # variable to store information on DERs if included
-        self.DER_pf = DER_pf                                # constant power factor of DERs
-        self.open_switches = []                             # variable to store information on normally open switches
-        self.include_secondary = include_secondary          # check whether to include secondary or not
-                
-    def __DER_inclusion(self) -> None:   
+        self.bus_names = self.dss.Circuit.AllBusNames()             # extract all bus names
+        self.source = self.bus_names[0]                             # typically the first bus is the source
+        self.include_DERs = include_DERs                            # variable to check whether to include DERs or not
+        self.DERs = []                                              # variable to store information on DERs if included
+        self.DER_pf = DER_pf                                        # constant power factor of DERs
+        self.open_switches = []                                     # variable to store information on normally open switches
+        self.include_secondary_network = include_secondary_network  # check whether to include secondary or not
+        
+        # initialize parsing process
+        self.__initialize()
+        
+    
+    def __initialize(self) -> None:
         """
-        Includes virtual switches for DERs based on DER inclusion flag
+        Initialize user-based preferences as well as DSS handlers (i.e. load, transformer, pdelements, and network)
+        """        
+        # if DERs are to be included then include virtual switches for DERs
+        if self.include_DERs:
+            self.DERs = self.__initializeDERs()
+            logging.info("DERs virtual switches have been added successfully.")
+        else:
+            logging.info("DERs virtual switches are not included due to exclusion of DERs.")
+        
+        # initialize DSS handlers
+        self.__initialize_dsshandlers()
+        
+                
+    def __initializeDERs(self) -> None:   
+        """
+        Include or exclude virtual switches for DERs based on DER inclusion flag
         """         
         self.DERs = []
         generator_flag = self.dss.Generators.First()
@@ -522,48 +563,40 @@ class DSSManager:
         # we also need to ensure that these switches are open as they are virtual switches
         for each_DERs in self.DERs:
             self.dss.Text.Command(f'Open Line.{each_DERs["name"]}')    
-             
     
-    def create_optim_files(self) -> None:
-        pass
-    
-    def parsedss(self) -> None:
-        # if DERs are to be included then include virtual switches for DERs
-        if not self.DER_inclusions:
-            self.DERs = self.__DER_inclusion()
-            logging.info("The DERs virtual switches have been added successfully.")
-        else:
-            logging.info("The DERs virtual switches are not included due to exclusion of DERs.")
+    def __initialize_dsshandlers(self) -> None: 
+        """Initialize all the DSS Handlers
+        """               
         
         # bus_handler is currently not being used here but kept here for future usage    
-        bus_handler = BusHandler(self.dss)
-        transformer_handler = TransformerHandler(self.dss)
-        pdelement_handler = PDElementHandler(self.dss)
-        network_handler = NetworkHandler(self.dss,
-                                         self.bus_names,
-                                         pdelement_handler=pdelement_handler)
+        self.bus_handler = BusHandler(self.dss)
+        self.transformer_handler = TransformerHandler(self.dss)
+        self.pdelement_handler = PDElementHandler(self.dss)
+        self.network_handler = NetworkHandler(self.dss,
+                                              pdelement_handler=self.pdelement_handler)
         
-        load_handler = LoadHandler(self.dss,
-                                   self.bus_names,
-                                   network_handler,
-                                   transformer_handler
-                                   )
-        logging.info(f'Successfully parsed the required data from {self.dssfile}.')
-        # self.create_optim_files()
+        if self.include_secondary_network:
+            logging.info("Considering entire system including secondary networks")
+            self.load_handler = LoadHandler(self.dss)
+        else:
+            # if primary loads are to be referred then we must pass network and transformer handlers 
+            logging.info("Considering primary networks and aggregating loads by referring them to the primary node")
+            self.load_handler = LoadHandler(self.dss,
+                                            include_secondary_network = self.include_secondary_network,
+                                            network_handler = self.network_handler,
+                                            transformer_handler = self.transformer_handler
+                                            )
+        logging.info(f'Successfully instantiated required handlers from {self.dssfile}.')
         
-
+    def parse_dss(self) -> None:
+        self.bus_data = self.bus_handler.get_buses() 
+        self.transformer_data = self.transformer_handler.get_transformers() 
+        self.pdelements_data = self.pdelement_handler.get_pdelements() 
+        self.network_graph, self.network_tree, self.normally_open_components = self.network_handler.network_topology()
+        self.load_data = self.load_handler.get_loads()        
+        breakpoint()
 
 if __name__ == "__main__":
-    dss_data = DSSManager(r"../../distributiondata/ieee9500_dss/Master-unbal-initial-config.dss")
-    dss_data.parsedss()
-    '''
-        expectation from this script what data do we need:
-    
-    1. Linedata and lineparameters
-    2. DERs and switches
-    3. loaddata -> per phase load (P,Q) and their connected bus info
-    4. Cycles 
-    5. Normally closed switches (not immediate)
-    '''
+    dss_data = DSSManager(r"../../../distributiondata/ieee9500_dss/Master-unbal-initial-config.dss")
     
     breakpoint()
