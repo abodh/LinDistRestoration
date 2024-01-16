@@ -1,10 +1,46 @@
-site_name: ldrestoration
+site_name: LinDistRestoration
 
 nav:
+  - installation.md
   - index.md
-  - dist-restoration: ldrestoration.md
+  - LinDistRestoration: 
+      dssparser.md
 
 plugins: 
-  - mkdocstrings
+  - search
+  - autorefs
+  - mkdocstrings:
+      enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: false
 
-theme: readthedocs
+
+theme: 
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+      icon: material/toggle-switch-off-outline
+      name: Switch to dark mode
+      primary: teal
+      accent: purple
+    - scheme: default
+      toggle:
+      icon: material/toggle-switch
+      name: Switch to light mode
+      primary: teal
+      accent: lime
