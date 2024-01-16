@@ -8,7 +8,6 @@ nav:
 
 plugins: 
   - search
-  - autorefs
   - mkdocstrings:
       enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
       default_handler: python

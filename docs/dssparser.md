@@ -1,7 +1,7 @@
 # dssparser 
 This contains the main module to parse the OpenDSS data and save them to the local directory.
 
-::: src.ldrestoration.dssparser.dssparser.DSSManager
+::: ldrestoration.dssparser.dssparser.DSSManager
     handler: python
     options:
         members:
