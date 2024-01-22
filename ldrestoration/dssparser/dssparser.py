@@ -3,12 +3,13 @@ import opendssdirect as dss
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
+import numpy as np
 from networkx.readwrite import json_graph
 import json
 import logging
 
 from ldrestoration.utils.decors import timethis
-from ldrestoration.utils.logger_config import setup_logging
+from ldrestoration.utils.loggerconfig import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
@@ -43,8 +44,6 @@ class DSSManager:
         self.dss.Text.Command(f"Redirect {self.dssfile}")
         
         # initialize other attributes
-        self.bus_names = self.dss.Circuit.AllBusNames()             # extract all bus names
-        self.source = self.bus_names[0]                             # typically the first bus is the source
         self.include_DERs = include_DERs                            # variable to check whether to include DERs or not
         self.DER_pf = DER_pf                                        # constant power factor of DERs
         self.include_secondary_network = include_secondary_network  # check whether to include secondary or not
@@ -52,6 +51,37 @@ class DSSManager:
                 
         # initialize parsing process variables and handlers
         self.__initialize()
+    
+    @property
+    def bus_names(self) -> list[str]:
+        """Access all the bus (node) names from the circuit 
+
+        Returns:
+            list[str]: list of all the bus names
+        """        
+        return self.dss.Circuit.AllBusNames()
+    
+    
+    @property
+    def basekV_LL(self) -> float:
+        """Returns basekV (line to line) of the circuit based on the sourcebus
+
+        Returns:
+            float: base kV of the circuit as referred to the source bus
+        """         
+        # make the source bus active before accessing the base kV since there is no provision to get base kV of circuit
+        self.dss.Circuit.SetActiveBus(self.source)
+        return round(self.dss.Bus.kVBase() * np.sqrt(3), 2)
+    
+    @property
+    def source(self) -> str:
+        """source bus of the circuit. 
+
+        Returns:
+            str: returns the source bus of the circuit
+        """     
+        # typically the first bus is the source bus   
+        return self.bus_names[0]
         
     @timethis    
     def __initialize(self) -> None:
@@ -145,22 +175,20 @@ class DSSManager:
             logging.info(f'Excluding secondaries from final tree, graph configurations, and pdelements.')
             self.network_tree.remove_nodes_from(self.load_handler.downstream_nodes_from_primary)
             self.network_graph.remove_nodes_from(self.load_handler.downstream_nodes_from_primary)
-            
             self.pdelements_data = [items for items in self.pdelements_data
-                                    if (items['from_bus'] not in self.load_handler.downstream_nodes_from_primary) 
-                                    or (items['to_bus'] not in self.load_handler.downstream_nodes_from_primary)]
-                        
+                                    if items['from_bus'] not in self.load_handler.downstream_nodes_from_primary and
+                                    items['to_bus'] not in self.load_handler.downstream_nodes_from_primary]           
         logging.info(f'Successfully parsed the required data from all handlers.')
     
     @timethis    
     def saveparseddss(self,
-                      folder_name: str = f"parsed_data/dssdatatocsv_{datetime.today().strftime('%m-%d-%Y_%H-%M-%S')}",
-                      exist_ok: bool = False) -> None:
+                      folder_name: str = f"parsed_data",
+                      folder_exist_ok: bool = False) -> None:
         """Saves the parsed data from all the handlers 
 
         Args:
             folder_name (str, optional): Name of the folder to save the data in. Defaults to "dssdatatocsv"_<current system date>.
-            exist_ok (bool, optional): Boolean to check if folder rewrite is ok. Defaults to False.
+            folder_exist_ok (bool, optional): Boolean to check if folder rewrite is ok. Defaults to False.
         """        
         
         # check if parsedss is run before saving these files
@@ -170,21 +198,22 @@ class DSSManager:
         
         # check if the path already exists. This prevent overwrite
         try:
-            Path(folder_name).mkdir(parents=True, exist_ok=exist_ok)  
+            Path(folder_name).mkdir(parents=True, exist_ok=folder_exist_ok)  
         except FileExistsError:
-            logger.error("The folder already exists and the module is attempting to rewrite the data in the folder. Either provide a path in <folder_name> or mention <exist_ok=True> to rewrite the existing files.")
+            logger.error("The folder already exists and the module is attempting to rewrite the data in the folder. Either provide a path in <folder_name> or mention <folder_exist_ok=True> to rewrite the existing files.")
             raise FileExistsError("The folder or files already exist. Please provide a non-existent path.")
-        
-        
+
         # save all the data in the new folder 
         # the non-networkx data are all saved as dataframe in csv
-        pd.DataFrame(self.bus_data).to_csv(f'{folder_name}/bus_data.csv')
-        pd.DataFrame(self.transformer_data).to_csv(f'{folder_name}/transformer_data.csv')
-        pd.DataFrame(self.pdelements_data).to_csv(f'{folder_name}/pdelements_data.csv')
-        pd.DataFrame(self.load_data).to_csv(f'{folder_name}/load_data.csv')
-        pd.DataFrame(self.DERs).to_csv(f'{folder_name}/DERs.csv')
-        pd.DataFrame(self.normally_open_components, columns=['normally_open_components']).to_csv(f'{folder_name}/normally_open_components.csv')
-            
+        pd.DataFrame(self.bus_data).to_csv(f'{folder_name}/bus_data.csv', index=False)
+        pd.DataFrame(self.transformer_data).to_csv(f'{folder_name}/transformer_data.csv', index=False)
+        pd.DataFrame(self.pdelements_data).to_csv(f'{folder_name}/pdelements_data.csv', index=False)
+        pd.DataFrame(self.load_data).to_csv(f'{folder_name}/load_data.csv', index=False)
+        pd.DataFrame(self.normally_open_components, columns=['normally_open_components']).to_csv(f'{folder_name}/normally_open_components.csv', index=False)
+        
+        if self.DERs is not None:
+            pd.DataFrame(self.DERs).to_csv(f'{folder_name}/DERs.csv', index=False)
+        
         # the networkx data is saved as a serialized JSON
         network_graph_data = json_graph.node_link_data(self.network_graph)
         network_tree_data = json_graph.node_link_data(self.network_tree)
@@ -199,10 +228,12 @@ class DSSManager:
 
 @timethis
 def main() -> None:
-    dss_data = DSSManager(r"../../../examples/test_cases/ieee9500_dss/Master-unbal-initial-config.dss",
+    dss_data = DSSManager(r"../../examples/test_cases/ieee9500_dss/Master-unbal-initial-config.dss",
                           include_DERs=True,
                           include_secondary_network=False)
-    dss_data.parsedss() 
+    dss_data.parsedss()
+    dss_data.saveparseddss() 
             
 if __name__ == '__main__':
     main()    
+    

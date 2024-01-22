@@ -1,8 +1,8 @@
 site_name: LinDistRestoration
 
 nav:
-  - installation.md
   - index.md
+  - installation.md
   - LinDistRestoration: 
       dssparser.md
 

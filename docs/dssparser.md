@@ -1,4 +1,3 @@
-# dssparser 
 This contains the main module to parse the OpenDSS data and save them to the local directory.
 
 ::: ldrestoration.dssparser.dssparser.DSSManager

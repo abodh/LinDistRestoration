@@ -2,7 +2,7 @@ from types import ModuleType
 from typing import Union
 
 import logging
-from ldrestoration.utils.logger_config import setup_logging
+from ldrestoration.utils.loggerconfig import setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
