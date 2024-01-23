@@ -1,0 +1,6 @@
+name,numwindings,connected_from,connected_to
+sub,2,sourcebus,650
+reg1,2,650,rg60
+reg2,2,650,rg60
+reg3,2,650,rg60
+xfm1,2,633,634

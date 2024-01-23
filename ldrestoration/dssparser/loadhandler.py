@@ -97,7 +97,7 @@ class LoadHandler:
             
             # conductor power contains info on active and reactive power
             conductor_power = np.array(self.dss_instance.CktElement.Powers())
-            nonzero_power_indices = np.where(conductor_power > 0)[0]
+            nonzero_power_indices = np.where(conductor_power != 0)[0]
             nonzero_power = conductor_power[nonzero_power_indices]
 
             for buses in connected_buses:
@@ -125,7 +125,7 @@ class LoadHandler:
                     for phase_index, phase in enumerate(connected_phase_secondary):
                         load_per_phase[f"P{phase}"][bus_index] += round(P_values[phase_index], 2)
                         load_per_phase[f"Q{phase}"][bus_index] += round(Q_values[phase_index], 2)
-
+                        
             loads_flag = self.dss_instance.Loads.Next()
         
         return pd.DataFrame(load_per_phase)

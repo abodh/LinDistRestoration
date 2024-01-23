@@ -27,7 +27,7 @@ class DSSManager:
                  DER_pf: float = 0.9,
                  include_secondary_network: bool = False) -> None:
         
-        logging.info(f'Initializing DSSManager')
+        logger.info(f'Initializing DSSManager')
         
         """Initialize a DSSManager instance. This instance manages all the components in the distribution system.
 
@@ -91,9 +91,9 @@ class DSSManager:
         # if DERs are to be included then include virtual switches for DERs
         if self.include_DERs:
             self.__initializeDERs()
-            logging.info(f"DERs virtual switches have been added successfully. The current version assumes a constant power factor of DERs; DERs power factor = {self.DER_pf}")
+            logger.info(f"DERs virtual switches have been added successfully. The current version assumes a constant power factor of DERs; DERs power factor = {self.DER_pf}")
         else:
-            logging.info("DERs virtual switches are not included due to exclusion of DERs.")
+            logger.info("DERs virtual switches are not included due to exclusion of DERs.")
         
         # initialize DSS handlers
         self.__initialize_dsshandlers()
@@ -148,18 +148,18 @@ class DSSManager:
                                               pdelement_handler=self.pdelement_handler)
         
         if self.include_secondary_network:
-            logging.info("Considering entire system including secondary networks")
+            logger.info("Considering entire system including secondary networks")
             self.load_handler = LoadHandler(self.dss,
                                             include_secondary_network = self.include_secondary_network)
         else:
             # if primary loads are to be referred then we must pass network and transformer handlers 
-            logging.info("Considering primary networks and aggregating loads by referring them to the primary node")
+            logger.info("Considering primary networks and aggregating loads by referring them to the primary node")
             self.load_handler = LoadHandler(self.dss,
                                             include_secondary_network = self.include_secondary_network,
                                             network_handler = self.network_handler,
                                             transformer_handler = self.transformer_handler
                                             )
-        logging.info(f'Successfully instantiated required handlers from "{self.dssfile}"')
+        logger.info(f'Successfully instantiated required handlers from "{self.dssfile}"')
     
     @timethis    
     def parsedss(self) -> None:
@@ -172,13 +172,13 @@ class DSSManager:
         self.load_data = self.load_handler.get_loads() 
         
         if not self.include_secondary_network:
-            logging.info(f'Excluding secondaries from final tree, graph configurations, and pdelements.')
+            logger.info(f'Excluding secondaries from final tree, graph configurations, and pdelements.')
             self.network_tree.remove_nodes_from(self.load_handler.downstream_nodes_from_primary)
             self.network_graph.remove_nodes_from(self.load_handler.downstream_nodes_from_primary)
             self.pdelements_data = [items for items in self.pdelements_data
                                     if items['from_bus'] not in self.load_handler.downstream_nodes_from_primary and
                                     items['to_bus'] not in self.load_handler.downstream_nodes_from_primary]           
-        logging.info(f'Successfully parsed the required data from all handlers.')
+        logger.info(f'Successfully parsed the required data from all handlers.')
     
     @timethis    
     def saveparseddss(self,

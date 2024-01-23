@@ -1,0 +1,63 @@
+! Annotated "Run" file for the IEEE 123 Bus Test Case
+!
+
+! This file contains two DSS scripts for executing the IEEE 123-bus test case.
+
+! The first script lets the DSS compute the regulator taps, which are generally one off from the 
+! presently posted solution. The second script uses the tap values determined by Kersting. This is done by
+! setting the taps on the transformers representing the regulators and then inhibiting the regulator control
+
+! The circuit definition is controlled by a "master" file, which invokes other files. This is but one 
+! logical way to oganize your files. You are free to choose another scheme of your choosing.
+
+! =================================================================
+! 1st Script
+! =================================================================
+
+
+Compile (IEEE123Master.dss)
+
+! 'Compile' differs from "redirect" in that it changes the default directory 
+! to the one in which the referenced file is located.
+! 'Redirect' returns to the directory from which it was invoked.
+
+! After compiling, the next series of script commands modify to the regulator control definitions to
+! limit the maximum tap change to 1 per solution control iteration. In most cases, this will 
+! allow the standard DSS solution algorithm to better represent an actual control.
+! Note the time delay is also chnaged. This forces the regulator at the head of the feeder to move first.
+
+RegControl.creg1a.maxtapchange=1  Delay=15  !Allow only one tap change per solution. This one moves first
+RegControl.creg2a.maxtapchange=1  Delay=30  !Allow only one tap change per solution
+RegControl.creg3a.maxtapchange=1  Delay=30  !Allow only one tap change per solution
+RegControl.creg4a.maxtapchange=1  Delay=30  !Allow only one tap change per solution
+RegControl.creg3c.maxtapchange=1  Delay=30  !Allow only one tap change per solution
+RegControl.creg4b.maxtapchange=1  Delay=30  !Allow only one tap change per solution
+RegControl.creg4c.maxtapchange=1  Delay=30  !Allow only one tap change per solution
+
+! The default maximum control iterations is 10. With so many regulators each moving only one tap at a time,
+! this is insufficient for the 123-bus test case, which will need 15 control iterations for the initial solution.
+! Therefore, the 'MaxControlIter' option is set to 30 to be safe.
+
+Set MaxControlIter=30
+
+! Solve executes the solution for the present solution mode, which is "snapshot".
+
+New EnergyMeter.Feeder Line.L115 1
+
+! checking the solution by opening NC sectionalizing switches
+!open Line.Sw4
+!open Line.Sw5
+!open Line.Sw6
+
+! checking the solution by closing NO tie-line switches
+Open Line.Sw7
+Open Line.Sw8
+
+solve
+Buscoords Buscoords.dat   ! load in bus coordinates
+
+! Show some selected results
+
+Plot Circuit
+
+plot circuit Power Max=5000 dots=n labels=n subs=y C1=$00FF0000

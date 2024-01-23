@@ -28,9 +28,9 @@ Redirect  CapControls.dss
 Redirect  Regulators.dss
 
 Redirect  Generators.dss
-Redirect  EnergyStorage.dss
-Redirect  PV_10pen_DSSPV.dss
-Redirect  PV_NN_100_DSSPV.dss
+!Redirect  EnergyStorage.dss
+!Redirect  PV_10pen_DSSPV.dss
+!Redirect  PV_NN_100_DSSPV.dss
 
 ! Let DSS estimate the voltage bases
 Set voltagebases=[115, 69, 12.47,  0.480, 0.208] 
