@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from types import ModuleType
 from typing import Optional
 import numpy as np
 import pandas as pd
 import networkx as nx
 import logging
+from functools import cache
 
 from ldrestoration.utils.decors import timethis
 from ldrestoration.dssparser.networkhandler import NetworkHandler
@@ -53,7 +56,8 @@ class LoadHandler:
                 # if we do not want secondary and we do not pass any handlers then there must be an error
                 logger.warning("You need to provide NetworkHandler() and TransformerHandler as arguments to LoadHandler()")
                 raise NotImplementedError(
-                "To refer the loads to primary, both NetworkHandler and TransformerHandler are required.")  
+                "To refer the loads to primary, both NetworkHandler and TransformerHandler are required."
+                )  
     
     @timethis
     def get_loads(self) -> pd.DataFrame:
@@ -66,6 +70,16 @@ class LoadHandler:
             # get primarry referred loads
             logger.info("Referring the loads back to the primary node of the distribution transformer.")
             return self.get_primary_referred_loads()             
+    
+    @property
+    @cache
+    def bus_names_to_index_map(self) -> dict[str,int]:
+        """each of the bus mapped to its corresponding index in the bus names list
+
+        Returns:
+            dict[str,int]: dictionary with key as bus names and value as its index
+        """        
+        return {bus:index for index,bus in enumerate(self.bus_names)}
         
     @timethis    
     def get_all_loads(self) -> pd.DataFrame:
@@ -106,7 +120,7 @@ class LoadHandler:
                     
                     # three phase checker
                     connected_bus = bus_split[0]
-                    bus_index = self.bus_names.index(connected_bus)  
+                    bus_index = self.bus_names_to_index_map[connected_bus]
                     load_per_phase["name"][bus_index] = self.dss_instance.Loads.Name()
                     P_values = nonzero_power[::2]   # Extract P values (every other element starting from the first)
                     Q_values = nonzero_power[1::2]  # Extract Q values (every other element starting from the second)
@@ -117,7 +131,7 @@ class LoadHandler:
                 else:
                     # non three phase load
                     connected_bus, connected_phase_secondary = bus_split[0], bus_split[1:]
-                    bus_index = self.bus_names.index(connected_bus)                    
+                    bus_index = self.bus_names_to_index_map[connected_bus]                  
                     load_per_phase["name"][bus_index] = self.dss_instance.Loads.Name()
                     P_values = nonzero_power[::2]  # Extract P values (every alternate element starting from the first)
                     Q_values = nonzero_power[1::2]  # Extract Q values (every alternate element starting from the second)
@@ -128,7 +142,7 @@ class LoadHandler:
                         
             loads_flag = self.dss_instance.Loads.Next()
         
-        return pd.DataFrame(load_per_phase)
+        return pd.DataFrame(load_per_phase)        
     
     @timethis
     def get_primary_referred_loads(self) -> pd.DataFrame:
@@ -152,9 +166,9 @@ class LoadHandler:
             # here we get the predecessor of the secondary i.e. primary node
             xfrmr_primary_node = list(network_tree.predecessors(xfrmr_secondary_node))[0]
             
-            # identify the secondary and primary bus indices so that loads are referred to primary 
-            secondary_bus_index = self.bus_names.index(xfrmr_secondary_node)
-            primary_bus_index = self.bus_names.index(xfrmr_primary_node)
+            # identify the secondary and primary bus indices so that loads are referred to primary             
+            secondary_bus_index = self.bus_names_to_index_map[xfrmr_secondary_node]
+            primary_bus_index = self.bus_names_to_index_map[xfrmr_primary_node]
             
             # however we still traverse downstream from the secondary as traversing from primary could follow other routes too
             xfrmr_downstream_nodes = nx.descendants(network_tree, xfrmr_secondary_node)
@@ -164,10 +178,13 @@ class LoadHandler:
             self.downstream_nodes_from_primary.extend(list(xfrmr_downstream_nodes)) 
             self.downstream_nodes_from_primary.extend([xfrmr_secondary_node])          
             
-            for load_node in xfrmr_downstream_nodes:
-                load_bus_index = self.bus_names.index(load_node)   
-                
-                # if np.any(loads_df.iloc[loads_df.index.get_loc(secondary_bus_index), 1:].to_numpy() > 0):            
+            for load_node in xfrmr_downstream_nodes:   
+                try:
+                    load_bus_index = self.bus_names_to_index_map[load_node]
+                except KeyError:
+                    logger.error(f"Invalid load name {load_node}")
+                    raise KeyError(f"{load_node} is not a valid bus name.")
+                        
                 primary_loads_df.loc[primary_bus_index, f"P{primary_phase[0]}"] += (primary_loads_df["P1"][load_bus_index] +
                                                                                     primary_loads_df["P2"][load_bus_index]) 
                 primary_loads_df.loc[primary_bus_index, f"Q{primary_phase[0]}"] += (primary_loads_df["Q1"][load_bus_index] +
@@ -182,4 +199,4 @@ class LoadHandler:
         # reset the loads dataframe to its original index
         primary_loads_df.reset_index(inplace=True, drop=True)
 
-        return primary_loads_df  
+        return primary_loads_df 

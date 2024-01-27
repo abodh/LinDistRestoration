@@ -41,9 +41,26 @@ def network_cycles_simple(network_graph: nx.Graph)-> list[list[str]]:
     return cycles_edges
 
 @timethis
-def edge_name_to_index(cycles: list[list[str]], 
-                       edges: list[tuple[str,str]]) -> list[list[int]]:
-    """Convert list of cycles with edges to their edge indices
+def network_cycles_minimum(network_graph: nx.Graph)-> list[list[str]]:
+    """Returnsminimum weight cycles in a networkx graph.
+    
+    Returns:
+        cycles_edges (list[list[str]]) : list of cycles where each cycles contain the list of nodes in the cycle
+    """    
+    network_cycles = nx.minimum_cycle_basis(network_graph)
+    
+    cycles_edges = []
+    for cycle in network_cycles:
+        cycle_edges = []
+        cycle_edges = [(cycle[i], cycle[(i+1) % len(cycle)]) for i in range(len(cycle))]
+        cycles_edges.append(cycle_edges)   
+    
+    return cycles_edges
+
+@timethis
+def loop_edges_to_tree_index(cycles: list[list[str]], 
+                             edges: list[tuple[str,str]]) -> list[list[int]]:
+    """Convert list of loops (cycles) with edges to their edge indices
 
     Args:
         cycles (list[list[str]]): list of cycle basis for the network 
@@ -55,21 +72,25 @@ def edge_name_to_index(cycles: list[list[str]],
     Returns:
         loop_edge_idxs (list[list[int]]): list of cycles where each cycle is represented by their edge index 
     """    
+    
+    # create a hashmap of the edges and their respective index in the tree
+    edge_index_map = {edge: idx for idx, edge in enumerate(edges)}      
     loop_edge_idxs = []
+    
     for cycle in cycles:
         cycle_idxs = []
         for each_edge in cycle:
-            try:
-                cycle_idxs.append(edges.index(each_edge))
-            except ValueError:
-                try:
-                    cycle_idxs.append(edges.index(each_edge[::-1]))
-                except ValueError:
-                    logger.debug(f"Could not find '{each_edge}' in the list of edges")
-                    raise ValueError(f"{each_edge} is not a valid edge in model.edges.")            
+            if each_edge in edge_index_map:
+                cycle_idxs.append(edge_index_map[each_edge])                
+            elif each_edge[::-1] in edge_index_map:
+                cycle_idxs.append(edge_index_map[each_edge[::-1]])
+            else:
+                logger.debug(f"Could not find '{each_edge}' in the list of edges")
+                raise KeyError(f"{each_edge} is not a valid edge in model.edges.")            
         loop_edge_idxs.append(cycle_idxs)
-    
+
     return loop_edge_idxs
+
 
 @timethis
 def associated_line_for_each_switch(graph: nx.Graph,

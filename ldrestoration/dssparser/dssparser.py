@@ -229,7 +229,7 @@ class DSSManager:
 @timethis
 def main() -> None:
     dss_data = DSSManager(r"../../examples/test_cases/ieee9500_dss/Master-unbal-initial-config.dss",
-                          include_DERs=True,
+                          include_DERs=False,
                           include_secondary_network=False)
     dss_data.parsedss()
     dss_data.saveparseddss() 

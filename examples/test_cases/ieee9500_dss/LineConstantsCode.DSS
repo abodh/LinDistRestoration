@@ -1,0 +1,353 @@
+!--- OpenDSS Linecodes file generated from Show LINECONSTANTS command
+!--- Frequency = 60 Hz, Earth resistivity = 100 ohm-m
+!--- Earth Model = Deri
+
+New Linecode.3ph-69kv_397_treewire nphases=3  Units=m
+~ Rmatrix=[0.00026293  |9.3208E-005  0.00026998  |9.89238E-005  0.000103135  0.000283358  ]
+~ Xmatrix=[0.000751932  |0.000321999  0.000734311  |0.000274056  0.000297849  0.000702036  ]
+~ Cmatrix=[0.00827238  |-0.0020459  0.00856706  |-0.00132931  -0.00196003  0.0085295  ]
+
+New Linecode.1p_1/0_axnj_db nphases=1  Units=m
+~ Rmatrix=[0.000907569  ]
+~ Xmatrix=[0.000277902  ]
+~ Cmatrix=[0.233559  ]
+
+New Linecode.3p_1/0_axnj_db nphases=3  Units=m
+~ Rmatrix=[0.000776533  |0.000114154  0.000762173  |9.06869E-005  0.000114154  0.000776533  ]
+~ Xmatrix=[0.000250064  |-1.30109E-005  0.000232002  |-3.08568E-005  -1.30109E-005  0.000250064  ]
+~ Cmatrix=[0.233559  |0  0.233559  |0  0  0.233559  ]
+
+New Linecode.1ph-x4_acsrx4_acsr nphases=1  Units=m
+~ Rmatrix=[0.00167466  ]
+~ Xmatrix=[0.00093456  ]
+~ Cmatrix=[0.00622332  ]
+
+New Linecode.1ph-xx4_acsr4_acsr nphases=1  Units=m
+~ Rmatrix=[0.00167466  ]
+~ Xmatrix=[0.00093456  ]
+~ Cmatrix=[0.00622332  ]
+
+New Linecode.1ph-x2_acsrx2_acsr nphases=1  Units=m
+~ Rmatrix=[0.0011223  ]
+~ Xmatrix=[0.000896365  ]
+~ Cmatrix=[0.00619207  ]
+
+New Linecode.1ph-x4_acsrx4_wpal nphases=1  Units=m
+~ Rmatrix=[0.00167723  ]
+~ Xmatrix=[0.000932411  ]
+~ Cmatrix=[0.00624145  ]
+
+New Linecode.3ph_h-4_acsr4_acsr4_acsr4_acsr nphases=3  Units=m
+~ Rmatrix=[0.0016834  |0.000138324  0.00167686  |0.000142669  0.000139294  0.00168543  ]
+~ Xmatrix=[0.0009273  |0.000432623  0.000932728  |0.000412253  0.000450469  0.000925637  ]
+~ Cmatrix=[0.00713084  |-0.00159596  0.00726471  |-0.0012675  -0.00186064  0.00728437  ]
+
+New Linecode.3ph_h-2/0_acsr2/0_acsr2/0_acsr2_acsr nphases=3  Units=m
+~ Rmatrix=[0.00066087  |0.000137499  0.000653999  |0.000142066  0.000138518  0.000663007  ]
+~ Xmatrix=[0.000869947  |0.000388579  0.000878528  |0.000366115  0.000405953  0.0008673  ]
+~ Cmatrix=[0.00728689  |-0.00165588  0.00743228  |-0.00131237  -0.0019334  0.00744943  ]
+
+New Linecode.1ph-4_wpalxx2_wpal nphases=1  Units=m
+~ Rmatrix=[0.00163092  ]
+~ Xmatrix=[0.000861221  ]
+~ Cmatrix=[0.00656844  ]
+
+New Linecode.3ph_h-4_acsr2_acsr2_acsr4_wpal nphases=3  Units=m
+~ Rmatrix=[0.00168626  |0.000141078  0.00112824  |0.000145566  0.00014208  0.0011371  ]
+~ Xmatrix=[0.000924966  |0.000430359  0.000933765  |0.000409898  0.000448185  0.000926495  ]
+~ Cmatrix=[0.00713901  |-0.00158069  0.00722752  |-0.001251  -0.00183152  0.00725309  ]
+
+New Linecode.1ph-4_acsrxx4_acsr nphases=1  Units=m
+~ Rmatrix=[0.00167466  ]
+~ Xmatrix=[0.00093456  ]
+~ Cmatrix=[0.00622332  ]
+
+New Linecode.3ph_h-4_acsr4_acsr4_acsr4_wpal nphases=3  Units=m
+~ Rmatrix=[0.00168626  |0.000141078  0.0016795  |0.000145566  0.00014208  0.00168836  ]
+~ Xmatrix=[0.000924966  |0.000430359  0.000930531  |0.000409898  0.000448185  0.000923261  ]
+~ Cmatrix=[0.00714216  |-0.00158776  0.00727065  |-0.00125578  -0.00185214  0.00729651  ]
+
+New Linecode.1ph-2_acsrxx2_acsr nphases=1  Units=m
+~ Rmatrix=[0.0011223  ]
+~ Xmatrix=[0.000896365  ]
+~ Cmatrix=[0.00619207  ]
+
+New Linecode.1ph-4_wpalxx4_acsr nphases=1  Units=m
+~ Rmatrix=[0.00163124  ]
+~ Xmatrix=[0.000898979  ]
+~ Cmatrix=[0.00657017  ]
+
+New Linecode.3ph_h-397_acsr397_acsr397_acsr2/0_acsr nphases=3  Units=m
+~ Rmatrix=[0.000270019  |0.000109951  0.000264634  |0.000113538  0.000110747  0.000271698  ]
+~ Xmatrix=[0.000695974  |0.00033351  0.000708729  |0.000308271  0.000350259  0.000692021  ]
+~ Cmatrix=[0.00938029  |-0.00249855  0.0097221  |-0.00191146  -0.00297975  0.00969649  ]
+
+New Linecode.1ph-2_acsrxx4_acsr nphases=1  Units=m
+~ Rmatrix=[0.00112339  ]
+~ Xmatrix=[0.000937794  ]
+~ Cmatrix=[0.00619361  ]
+
+New Linecode.1ph-xx2_acsr2_acsr nphases=1  Units=m
+~ Rmatrix=[0.0011223  ]
+~ Xmatrix=[0.000896365  ]
+~ Cmatrix=[0.00619207  ]
+
+New Linecode.1ph-xx4_wpal4_wpal nphases=1  Units=m
+~ Rmatrix=[0.00163382  ]
+~ Xmatrix=[0.00089683  ]
+~ Cmatrix=[0.00659038  ]
+
+New Linecode.1ph-x4_wpalx4_wpal nphases=1  Units=m
+~ Rmatrix=[0.00163382  ]
+~ Xmatrix=[0.00089683  ]
+~ Cmatrix=[0.00659038  ]
+
+New Linecode.1ph-xx4_wpal4_acsr nphases=1  Units=m
+~ Rmatrix=[0.00163124  ]
+~ Xmatrix=[0.000898979  ]
+~ Cmatrix=[0.00657017  ]
+
+New Linecode.1ph-x2_acsrx1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00103207  ]
+~ Xmatrix=[0.000801436  ]
+~ Cmatrix=[0.00623248  ]
+
+New Linecode.1ph-4_acsrxx4_wpal nphases=1  Units=m
+~ Rmatrix=[0.00167723  ]
+~ Xmatrix=[0.000932411  ]
+~ Cmatrix=[0.00624145  ]
+
+New Linecode.1ph-xx4_acsr1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00158334  ]
+~ Xmatrix=[0.000798203  ]
+~ Cmatrix=[0.00626257  ]
+
+New Linecode.3ph_h-4_wpal4_wpal4_wpal4_acsr nphases=3  Units=m
+~ Rmatrix=[0.00163999  |0.000138324  0.00163344  |0.000142669  0.000139294  0.00164202  ]
+~ Xmatrix=[0.000891719  |0.000432623  0.000897146  |0.000412253  0.000450469  0.000890056  ]
+~ Cmatrix=[0.00763183  |-0.00178719  0.0078028  |-0.00140838  -0.00209397  0.0078155  ]
+
+New Linecode.1ph-x4_wpalx4_acsr nphases=1  Units=m
+~ Rmatrix=[0.00163124  ]
+~ Xmatrix=[0.000898979  ]
+~ Cmatrix=[0.00657017  ]
+
+New Linecode.1ph-4_wpalxx4_wpal nphases=1  Units=m
+~ Rmatrix=[0.00163382  ]
+~ Xmatrix=[0.00089683  ]
+~ Cmatrix=[0.00659038  ]
+
+New Linecode.3ph_h-4_wpal4_wpal4_wpal4_wpal nphases=3  Units=m
+~ Rmatrix=[0.00164285  |0.000141078  0.00163609  |0.000145566  0.00014208  0.00164495  ]
+~ Xmatrix=[0.000889385  |0.000430359  0.00089495  |0.000409898  0.000448185  0.00088768  ]
+~ Cmatrix=[0.0076441  |-0.00177848  0.00780899  |-0.00139565  -0.00208493  0.00782869  ]
+
+New Linecode.3ph_h-2_acsr2_acsr2_acsr2_acsr nphases=3  Units=m
+~ Rmatrix=[0.00113148  |0.000137499  0.00112461  |0.000142066  0.000138518  0.00113362  ]
+~ Xmatrix=[0.000884886  |0.000388579  0.000893467  |0.000366115  0.000405953  0.000882239  ]
+~ Cmatrix=[0.00708774  |-0.00158089  0.00721918  |-0.00125678  -0.0018422  0.00723881  ]
+
+New Linecode.1ph-4_acsrxx1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00158334  ]
+~ Xmatrix=[0.000798203  ]
+~ Cmatrix=[0.00626257  ]
+
+New Linecode.3ph_h-4_acsr2_acsr2_acsr4_acsr nphases=3  Units=m
+~ Rmatrix=[0.0016834  |0.000138324  0.00112559  |0.000142669  0.000139294  0.00113417  ]
+~ Xmatrix=[0.0009273  |0.000432623  0.000935962  |0.000412253  0.000450469  0.000928871  ]
+~ Cmatrix=[0.00712766  |-0.00158888  0.00722162  |-0.00126269  -0.00183994  0.00724106  ]
+
+New Linecode.1ph-xx4_acsr4_wpal nphases=1  Units=m
+~ Rmatrix=[0.00167723  ]
+~ Xmatrix=[0.000932411  ]
+~ Cmatrix=[0.00624145  ]
+
+New Linecode.1ph-4_acsrxx2_acsr nphases=1  Units=m
+~ Rmatrix=[0.00167357  ]
+~ Xmatrix=[0.000893131  ]
+~ Cmatrix=[0.00622177  ]
+
+New Linecode.1ph-x4_wpalx1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00153992  ]
+~ Xmatrix=[0.000762621  ]
+~ Cmatrix=[0.00661393  ]
+
+New Linecode.1ph-xx4_acsr1/0_acsr nphases=1  Units=m
+~ Rmatrix=[0.00165698  ]
+~ Xmatrix=[0.000855269  ]
+~ Cmatrix=[0.00622408  ]
+
+New Linecode.1ph-2_acsrxx4_wpal nphases=1  Units=m
+~ Rmatrix=[0.00112597  ]
+~ Xmatrix=[0.000935645  ]
+~ Cmatrix=[0.00621156  ]
+
+New Linecode.1ph-xx2/0_acsr1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.000561461  ]
+~ Xmatrix=[0.000786498  ]
+~ Cmatrix=[0.00637396  ]
+
+New Linecode.2ph_h-2_acsrx2_acsr2_acsr nphases=2  Units=m
+~ Rmatrix=[0.00113148  |0.000142066  0.00113362  ]
+~ Xmatrix=[0.000884886  |0.000366115  0.000882239  ]
+~ Cmatrix=[0.00674155  |-0.00166019  0.00676872  ]
+
+New Linecode.1ph-2_wpalxx2_wpal nphases=1  Units=m
+~ Rmatrix=[0.00116232  ]
+~ Xmatrix=[0.000900036  ]
+~ Cmatrix=[0.00619207  ]
+
+New Linecode.1ph-2_acsrxx4/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00107236  ]
+~ Xmatrix=[0.000807978  ]
+~ Cmatrix=[0.0062478  ]
+
+New Linecode.3ph_h-397_acsr397_acsr397_acsr4_wpal nphases=3  Units=m
+~ Rmatrix=[0.000301838  |0.000141078  0.000295078  |0.000145566  0.00014208  0.000303936  ]
+~ Xmatrix=[0.000796484  |0.000430359  0.000802049  |0.000409898  0.000448185  0.000794778  ]
+~ Cmatrix=[0.00939091  |-0.00249157  0.00972668  |-0.0019004  -0.00297248  0.009708  ]
+
+New Linecode.3ph_h-397_acsr397_acsr397_acsr397_acsr nphases=3  Units=m
+~ Rmatrix=[0.000214162  |5.57957E-005  0.000212131  |5.71636E-005  5.60892E-005  0.000214801  ]
+~ Xmatrix=[0.000634957  |0.00027487  0.000652375  |0.000246528  0.00029092  0.000629544  ]
+~ Cmatrix=[0.00944245  |-0.0024577  0.00974894  |-0.00184676  -0.00293723  0.00976382  ]
+
+New Linecode.1ph-xx2_acsr1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00103207  ]
+~ Xmatrix=[0.000801436  ]
+~ Cmatrix=[0.00623248  ]
+
+New Linecode.1ph-x4_acsrx2_wpal nphases=1  Units=m
+~ Rmatrix=[0.00167434  ]
+~ Xmatrix=[0.000896802  ]
+~ Cmatrix=[0.00622177  ]
+
+New Linecode.1ph-x4_acsrx4_dpx nphases=1  Units=m
+~ Rmatrix=[0.0016773  ]
+~ Xmatrix=[0.000932059  ]
+~ Cmatrix=[0.00624145  ]
+
+New Linecode.3ph_h-2_acsr2_acsr4_acsr4_acsr nphases=3  Units=m
+~ Rmatrix=[0.00113214  |0.000138324  0.00112559  |0.000142669  0.000139294  0.00168543  ]
+~ Xmatrix=[0.000930534  |0.000432623  0.000935962  |0.000412253  0.000450469  0.000925637  ]
+~ Cmatrix=[0.00708992  |-0.0015784  0.00722231  |-0.00126284  -0.00185182  0.00728048  ]
+
+New Linecode.1ph-4_wpalxx1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00153992  ]
+~ Xmatrix=[0.000762621  ]
+~ Cmatrix=[0.00661393  ]
+
+New Linecode.1ph-x4_acsrx1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00158334  ]
+~ Xmatrix=[0.000798203  ]
+~ Cmatrix=[0.00626257  ]
+
+New Linecode.1ph-4_acsrxx1/0_3w_cs nphases=1  Units=m
+~ Rmatrix=[0.00166186  ]
+~ Xmatrix=[0.000844051  ]
+~ Cmatrix=[0.00626257  ]
+
+New Linecode.1ph-x2_acsrx4_acsr nphases=1  Units=m
+~ Rmatrix=[0.00112339  ]
+~ Xmatrix=[0.000937794  ]
+~ Cmatrix=[0.00619361  ]
+
+New Linecode.1ph-x2_acsrx1/0_3w_cs nphases=1  Units=m
+~ Rmatrix=[0.00111059  ]
+~ Xmatrix=[0.000847285  ]
+~ Cmatrix=[0.00623248  ]
+
+New Linecode.3ph_h-2/0_acsr2/0_acsr2/0_acsr2/0_acsr nphases=3  Units=m
+~ Rmatrix=[0.00063257  |0.000109951  0.000627184  |0.000113538  0.000110747  0.000634249  ]
+~ Xmatrix=[0.000812752  |0.00033351  0.000825507  |0.000308271  0.000350259  0.000808799  ]
+~ Cmatrix=[0.00729154  |-0.00165252  0.00743469  |-0.00130754  -0.00192992  0.00745443  ]
+
+New Linecode.1ph-2_acsrxx1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00103207  ]
+~ Xmatrix=[0.000801436  ]
+~ Cmatrix=[0.00623248  ]
+
+New Linecode.3ph_h-4_wpal4_wpal4_wpal1/0_tpx nphases=3  Units=m
+~ Rmatrix=[0.00154119  |4.23582E-005  0.00154023  |4.3017E-005  4.24921E-005  0.0015415  ]
+~ Xmatrix=[0.000740322  |0.000286955  0.000756994  |0.000259106  0.000303117  0.00073514  ]
+~ Cmatrix=[0.00765854  |-0.00176823  0.00781626  |-0.00138068  -0.0020743  0.00784422  ]
+
+New Linecode.1ph-x4_wpalx2_acsr nphases=1  Units=m
+~ Rmatrix=[0.00163015  ]
+~ Xmatrix=[0.00085755  ]
+~ Cmatrix=[0.00656844  ]
+
+New Linecode.3ph_h-2/0_acsr2/0_acsr2/0_acsr2_wpal nphases=3  Units=m
+~ Rmatrix=[0.000661672  |0.000138291  0.000654779  |0.000142872  0.000139313  0.000663816  ]
+~ Xmatrix=[0.000874001  |0.000392488  0.000882296  |0.000370214  0.000409905  0.000871444  ]
+~ Cmatrix=[0.00728689  |-0.00165588  0.00743228  |-0.00131237  -0.0019334  0.00744943  ]
+
+New Linecode.1ph-xx4_acsr2_acsr nphases=1  Units=m
+~ Rmatrix=[0.00167357  ]
+~ Xmatrix=[0.000893131  ]
+~ Cmatrix=[0.00622177  ]
+
+New Linecode.1ph-x4_acsrx4_tpx nphases=1  Units=m
+~ Rmatrix=[0.0016773  ]
+~ Xmatrix=[0.000932059  ]
+~ Cmatrix=[0.00624145  ]
+
+New Linecode.3ph_h-4_acsr4_acsr4_acsr4_tpx nphases=3  Units=m
+~ Rmatrix=[0.00168634  |0.000141153  0.00167957  |0.000145647  0.000142157  0.00168844  ]
+~ Xmatrix=[0.00092458  |0.000429986  0.000930171  |0.000409508  0.000447808  0.000922866  ]
+~ Cmatrix=[0.00714216  |-0.00158776  0.00727065  |-0.00125578  -0.00185214  0.00729651  ]
+
+New Linecode.1ph-4_acsrxx6_wpal nphases=1  Units=m
+~ Rmatrix=[0.00166227  ]
+~ Xmatrix=[0.000967202  ]
+~ Cmatrix=[0.00621965  ]
+
+New Linecode.1ph-xx4_acsr4_tpx nphases=1  Units=m
+~ Rmatrix=[0.0016773  ]
+~ Xmatrix=[0.000932059  ]
+~ Cmatrix=[0.00624145  ]
+
+New Linecode.3ph_h-397_acsr397_acsr397_acsr2/0_wpal nphases=3  Units=m
+~ Rmatrix=[0.000270019  |0.000109951  0.000264634  |0.000113538  0.000110747  0.000271698  ]
+~ Xmatrix=[0.000695974  |0.00033351  0.000708729  |0.000308271  0.000350259  0.000692021  ]
+~ Cmatrix=[0.00938029  |-0.00249855  0.0097221  |-0.00191146  -0.00297975  0.00969649  ]
+
+New Linecode.1ph-2/0_acsrxx2_acsr nphases=1  Units=m
+~ Rmatrix=[0.000651691  ]
+~ Xmatrix=[0.000881426  ]
+~ Cmatrix=[0.0063317  ]
+
+New Linecode.3ph_h-2/0_acsr2/0_acsr2/0_acsr4_acsr nphases=3  Units=m
+~ Rmatrix=[0.000661525  |0.000138324  0.000654981  |0.000142669  0.000139294  0.000663555  ]
+~ Xmatrix=[0.000915595  |0.000432623  0.000921023  |0.000412253  0.000450469  0.000913932  ]
+~ Cmatrix=[0.00728787  |-0.00165517  0.00743279  |-0.00131134  -0.00193266  0.00745049  ]
+
+New Linecode.1ph-xx4_wpal1/0_tpx nphases=1  Units=m
+~ Rmatrix=[0.00153992  ]
+~ Xmatrix=[0.000762621  ]
+~ Cmatrix=[0.00661393  ]
+
+New Linecode.1ph-xx6_wpal6_wpal nphases=1  Units=m
+~ Rmatrix=[0.00250305  ]
+~ Xmatrix=[0.000974922  ]
+~ Cmatrix=[0.00614925  ]
+
+New Linecode.1ph-x2_acsrx4_tpx nphases=1  Units=m
+~ Rmatrix=[0.00112603  ]
+~ Xmatrix=[0.000935293  ]
+~ Cmatrix=[0.00621156  ]
+
+New Linecode.3ph_h-4_acsr4_acsr4_acsr2_wpal nphases=3  Units=m
+~ Rmatrix=[0.00168355  |0.000138291  0.00167665  |0.000142872  0.000139313  0.00168569  ]
+~ Xmatrix=[0.000885706  |0.000392488  0.000894001  |0.000370214  0.000409905  0.000883149  ]
+~ Cmatrix=[0.00712988  |-0.00159666  0.0072642  |-0.0012685  -0.00186136  0.00728334  ]
+
+New Linecode.1ph-x4_acsrx1/0_3w_cs nphases=1  Units=m
+~ Rmatrix=[0.00166186  ]
+~ Xmatrix=[0.000844051  ]
+~ Cmatrix=[0.00626257  ]
+
+New Linecode.1ph-xx2_acsr4_dpx nphases=1  Units=m
+~ Rmatrix=[0.00112603  ]
+~ Xmatrix=[0.000935293  ]
+~ Cmatrix=[0.00621156  ]

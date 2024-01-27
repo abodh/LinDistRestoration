@@ -1,9 +1,0 @@
-name,numwindings,connected_from,connected_to
-reg1a,2,150,150r
-xfm1,2,61s,610
-reg2a,2,9,9r
-reg3a,2,25,25r
-reg4a,2,160,160r
-reg3c,2,25,25r
-reg4b,2,160,160r
-reg4c,2,160,160r

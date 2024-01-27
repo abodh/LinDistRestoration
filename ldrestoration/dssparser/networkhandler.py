@@ -103,7 +103,8 @@ class NetworkHandler:
                                        each_line['to_bus'], 
                                        # the remaining arguments are the data associated with each edges
                                        element=each_line['element'],
-                                       is_switch=each_line['is_switch'])
+                                       is_switch=each_line['is_switch'],
+                                       is_open=each_line['is_open'])
             else:
                 normally_open_components.append(each_line['name'])
 
