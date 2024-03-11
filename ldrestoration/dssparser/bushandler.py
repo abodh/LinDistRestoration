@@ -3,11 +3,22 @@ from typing import Union
 import logging
 
 from ldrestoration.utils.decors import timethis
-from ldrestoration.utils.loggerconfig import setup_logging
+from ldrestoration.utils.decors import setup_logging
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
 class BusHandler:
+    """BusHandler deals with bus (node) related data from the distribution model.
+    
+    Args:
+        dss_instance (ModuleType): redirected opendssdirect instance 
+    
+    Note: 
+        Bus and Nodes are two different concepts in distribution systems modeling and are used interchangably here 
+        for simplicity.    
+    """
+
     def __init__(self, 
                  dss_instance: ModuleType) -> None:
         """Initialize a BusHandler instance. This instance deals with bus (node) related data from the distribution model.

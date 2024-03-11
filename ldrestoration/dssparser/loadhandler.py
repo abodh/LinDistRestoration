@@ -8,16 +8,35 @@ import networkx as nx
 import logging
 from functools import cache
 
-from ldrestoration.utils.decors import timethis
 from ldrestoration.dssparser.networkhandler import NetworkHandler
 from ldrestoration.dssparser.transformerhandler import TransformerHandler
 
+from ldrestoration.utils.decors import timethis
 from ldrestoration.utils.loggerconfig import setup_logging
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
 class LoadHandler:
-    # to do: condition for delta connected loads
+    """LoadHandler deals with all the loads in the distribution system. 
+    When `include_secondary_network=False`, all the secondary loads are referred back to their primary.  
+
+    Args:
+        dss_instance (ModuleType): redirected opendssdirect instance
+        network_handler (Optional[NetworkHandler]): Directed network tree of the distribution model, Defaults to None
+        transformer_handler (Optional[TransformerHandler]): Instance of TransformerHandler. Defaults to None.
+        include_secondary_network (Optional[bool]): Whether the secondary network is to be considered or not, Defaults to False
+        bus_names (Optional[list[str]]):Names of all the buses (nodes) in the distribution model
+    
+    Note:
+        * In OpenDSS, the phases information of loads are lost on the secondary side of the split-phase transformers. Hence, each of the loads are traced back to their 
+        nearest transformer to identify the corresponding phase. For delta primary, the loads are equally distributed to each phase. 
+    
+    To do:
+        * The current version does not address phase wise load decoupling for delta connected loads. It will be incorporated in the future releases.
+    
+    """     
+
     def __init__(self, 
                  dss_instance: ModuleType,
                  network_handler: Optional[NetworkHandler] = None,
@@ -152,14 +171,19 @@ class LoadHandler:
         Returns:
             primary_loads_df(pd.DataFrame): Per phase load data in a pandas dataframe with secondary transferred to primary
         """
-        self.downstream_nodes_from_primary = []  
+        # keep track of all downstream nodes from primary. This is for removal from network as well,
+        # since we are aggregating these loads in the primary, removing them will reduce computational burden
+        self.downstream_nodes_from_primary = set()  
+        
+        # get access to the network tree from the topology
         _, network_tree, _ = self.network_handler.network_topology()
                 
         # obtain the relation between the primary phase and secondary bus in splitphase transformer
+        # this obtains a dictionary with secondary nodes s key and their associated phase info as value
         split_phase_primary = self.transformer_handler.get_splitphase_primary()
         
         # initially this is the secondary load but will be changed to reflect the primary load referral
-        primary_loads_df = self.get_all_loads()
+        primary_loads_df = self.get_all_loads()   
         
         for xfrmr_secondary_node, primary_phase in split_phase_primary.items():
             
@@ -172,30 +196,31 @@ class LoadHandler:
             
             # however we still traverse downstream from the secondary as traversing from primary could follow other routes too
             xfrmr_downstream_nodes = nx.descendants(network_tree, xfrmr_secondary_node)
+            xfrmr_downstream_nodes.add(xfrmr_secondary_node)
             
-            # extend the xfmr secondary and downstream in the removal list for future
-            # since we are aggregating these loads in the primary, removing them will reduce computational burden
-            self.downstream_nodes_from_primary.extend(list(xfrmr_downstream_nodes)) 
-            self.downstream_nodes_from_primary.extend([xfrmr_secondary_node])          
+            # add all the nodes downstream from the transformer's primary (including secondary)
+            self.downstream_nodes_from_primary.update(xfrmr_downstream_nodes)      
             
-            for load_node in xfrmr_downstream_nodes:   
+            # now we refer all the downstream node loads (if available) to the primary and remove them from the load df
+            # this reduces computational burden when not dealing with the secondaries
+            for xfrmr_downstream_node in xfrmr_downstream_nodes:   
                 try:
-                    load_bus_index = self.bus_names_to_index_map[load_node]
+                    downstream_node_index = self.bus_names_to_index_map[xfrmr_downstream_node]
                 except KeyError:
-                    logger.error(f"Invalid load name {load_node}")
-                    raise KeyError(f"{load_node} is not a valid bus name.")
+                    logger.error(f"Invalid load name {xfrmr_downstream_node}")
+                    raise KeyError(f"{xfrmr_downstream_node} is not a valid node name.")
                         
-                primary_loads_df.loc[primary_bus_index, f"P{primary_phase[0]}"] += (primary_loads_df["P1"][load_bus_index] +
-                                                                                    primary_loads_df["P2"][load_bus_index]) 
-                primary_loads_df.loc[primary_bus_index, f"Q{primary_phase[0]}"] += (primary_loads_df["Q1"][load_bus_index] +
-                                                                                    primary_loads_df["Q2"][load_bus_index])                
+                primary_loads_df.loc[primary_bus_index, f"P{primary_phase[0]}"] += (primary_loads_df["P1"][downstream_node_index] +
+                                                                                    primary_loads_df["P2"][downstream_node_index]) 
+                primary_loads_df.loc[primary_bus_index, f"Q{primary_phase[0]}"] += (primary_loads_df["Q1"][downstream_node_index] +
+                                                                                    primary_loads_df["Q2"][downstream_node_index])                
                 
-                primary_loads_df.loc[primary_bus_index, f"name"] = primary_loads_df["name"][load_bus_index]
-                
+                primary_loads_df.loc[primary_bus_index, f"name"] = primary_loads_df["name"][downstream_node_index]
+
                 # drop the secondaries from the dataframe
-                primary_loads_df.drop(load_bus_index, inplace=True)  
-                primary_loads_df.drop(secondary_bus_index, inplace=True)  
-        
+                primary_loads_df.drop(downstream_node_index, inplace=True) 
+                # primary_loads_df.drop(secondary_bus_index, inplace=True)  
+                    
         # reset the loads dataframe to its original index
         primary_loads_df.reset_index(inplace=True, drop=True)
 

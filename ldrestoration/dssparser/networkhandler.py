@@ -12,8 +12,20 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 class NetworkHandler:
-    # to do :-> extract feeder information to visualize it better
-    # to do : add a method to remove list of edges provided as an argument
+            
+    """NetworkHandler creates and modifies the network as a graph (nodes and edges) for the distribution model 
+    
+    Args:
+        dss_instance (ModuleType): redirected opendssdirect instance
+        bus_names (Optional[list[str]]):Names of all the buses (nodes) in the distribution model. Defaults to None
+        source (Optional[str], optional): Source node of the graph to build. Defaults to None.
+        pdelement_handler (Optional[PDElementHandler], optional): Instance of PDElementHandler. Defaults to None.
+        pdelements_data (Optional[list[dict[str,Union[int,str,float]]]], optional): All the required data of the pdelements(edges) from PDElementHandler or provided by user in pdelements format. Defaults to None.
+    
+    To do:
+        * extract feeder information to visualize it better
+        * add a method to remove list of edges provided as an argument
+    """   
     def __init__(self, 
                  dss_instance: ModuleType, 
                  bus_names: Optional[list[str]] = None,
@@ -104,7 +116,8 @@ class NetworkHandler:
                                        # the remaining arguments are the data associated with each edges
                                        element=each_line['element'],
                                        is_switch=each_line['is_switch'],
-                                       is_open=each_line['is_open'])
+                                       is_open=each_line['is_open'],
+                                       name=each_line['name'])
             else:
                 normally_open_components.append(each_line['name'])
 

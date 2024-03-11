@@ -11,7 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 class PDElementHandler:
-    
+    """PDElementHandler deals with all the power delivery elements -> lines, transformers,
+    reactors, and capacitors. ALthough we have separate handlers for a few of them, we extract the PDelements here as they represent 
+    edges for out network  
+
+    Args:
+        dss_instance (ModuleType): redirected opendssdirect instance
+    """
+        
     def __init__(self, 
                  dss_instance: ModuleType) -> None:
         """Initialize a PDElementHandler instance. This instance deals with all the power delivery elements -> lines, transformers,
@@ -130,9 +137,13 @@ class PDElementHandler:
                         'num_phases': self.dss_instance.Lines.Phases(),
                         'phases':{'a','b','c'} if self.dss_instance.CktElement.NumPhases() == 3 else
                         self.element_phase_identification(element_phases=self.dss_instance.CktElement.BusNames()[0].split('.')[1:]),
-                    'is_switch': self.dss_instance.Lines.IsSwitch(),
+                        'is_switch': self.dss_instance.Lines.IsSwitch(),
                         'is_open': (self.dss_instance.CktElement.IsOpen(1, 0) or self.dss_instance.CktElement.IsOpen(2, 0))
                     }      
+                    # obtain the kVbase (line to line) of the element
+                    # we assume the voltage level of the element is the voltage of its secondary bus     
+                    self.dss_instance.Circuit.SetActiveBus(self.dss_instance.Lines.Bus2().split('.')[0])
+                    each_element_data['base_kv_LL'] = round(self.dss_instance.Bus.kVBase() * np.sqrt(3), 2)
                 
                 else:
                     # everything other than lines but not capacitors i.e. transformers, reactors etc.
@@ -157,7 +168,14 @@ class PDElementHandler:
                     'is_switch': False,
                     'is_open': False
                     }
+                    # if element_type == "transformer":
+                    #     breakpoint()
                     
+                    # obtain the kVbase (line to line) of the element
+                    # we assume the voltage level of the element is the voltage of its secondary bus     
+                    self.dss_instance.Circuit.SetActiveBus(self.dss_instance.CktElement.BusNames()[1].split('.')[0])
+                    each_element_data['base_kv_LL'] = round(self.dss_instance.Bus.kVBase() * np.sqrt(3), 2)
+                                    
                 pdelement_list.append(each_element_data)
             element_activity_status = self.dss_instance.PDElements.Next()
 

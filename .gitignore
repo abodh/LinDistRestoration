@@ -3,7 +3,5 @@ __pycache__
 *.txt
 *.DSV
 *.dbl
-p1rhs0_1247
 *.egg-info
 .vscode
-distributiondata

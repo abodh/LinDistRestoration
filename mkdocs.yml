@@ -1,43 +1,100 @@
-site_name: LinDistRestoration
+site_name: LinDistRestoration 0.1.0
 
 nav:
   - index.md
-  - installation.md
+  - Installation: 
+    - Overview: installation/installation.md
+    - GitHub: installation/github.md
+    - pip installation: installation/pip.md
+    - install solvers: installation/solvers.md 
+  - Getting started: 
+    - Quick Start: example/quickstart.md
+    - Examples: example/examples.md
+      # - Parse OpenDSS data: example/parse-opendss-data.md
+      # - Plot parsed data: example/plotdata.md
+      # - Base Restoration Model: example/restoration.md
+      # - Plot Solution: example/plotsolution.md
   - LinDistRestoration: 
-      dssparser.md
+    - ldrestoration/dssparser.md
+  - License: 
+    - license.md
+
+repo_url: https://github.com/abodh/LinDistRestoration
+repo_name: abodh/LinDistRestoration
+
+# markdown_extensions:
+#   - pymdownx.highlight:
+#       anchor_linenums: true
+#       line_spans: __span
+#       pygments_lang_class: true
+#   - pymdownx.inlinehilite
+#   - pymdownx.snippets
+#   - pymdownx.superfences
+#   - toc:
+#       permalink: "#"
+#   - attr_list
+#   - def_list
+#   - tables
+#   - pymdownx.highlight:
+#       use_pygments: false
+#   - pymdownx.snippets
+#   - pymdownx.superfences
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      permalink: "#"
+
+extra_css:
+  - https://cdn.jsdelivr.net/npm/prismjs@1.27.0/themes/prism.css
 
 plugins: 
   - search
   - autorefs
   - mkdocstrings:
-      enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+      # enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
       default_handler: python
       handlers:
         python:
+          import:
+          - https://installer.readthedocs.io/en/stable/objects.inv
           options:
             show_source: false
-
-
+            docstring_style: google
+            
 theme: 
   name: material
   features:
     - navigation.tabs
-    - navigation.sections
+    # - navigation.tabs.sticky
+    # - navigation.sections
+    # - navigation.instant
+    # - navigation.tracking
     - toc.integrate
+    # - toc.follow
     - navigation.top
     - search.suggest
     - search.highlight
     - content.tabs.link
     - content.code.annotation
     - content.code.copy
+    - content.code.select
+  icon:
+    repo: fontawesome/brands/github
   language: en
   palette:
     - scheme: default
       toggle:
       icon: material/toggle-switch-off-outline
       name: Switch to dark mode
-      primary: teal
-      accent: purple
+      primary: indigo
+      accent: indigo
     - scheme: default
       toggle:
       icon: material/toggle-switch

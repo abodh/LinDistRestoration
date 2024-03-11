@@ -21,22 +21,37 @@ from ldrestoration.dssparser.loadhandler import LoadHandler
 
 
 class DSSManager:
+    """DSSManager is the primary module to parse the OpenDSS data. It manages all the components, including but not limited to, loads, generators, pdelements, transformers etc.
+    Each of the components' data structure is managed by their respective handlers and can be accessed individually, if required.
+    
+    Args:
+        dssfile (str): path of the dss master file (currently only supports OpenDSS files)
+        include_DERs (bool, optional): Check whether to include DERs or not. Defaults to True.
+        DER_pf (float, optional): Constant power factor of DERs. Defaults to 0.9.
+        include_secondary_network (bool, optional): Check whether to include secondary network or not. Defaults to False.
+        
+    Examples:
+        The only required argument is the OpenDSS master file. We assume that the master file compiles all other OpenDSS files.
+        The DSSManager class is initiated first and a method parse_dss() will then parse the overall data.
+        >>> dataobj = DSSManager('ieee123master.dss', include_DERs=True)
+        >>> dataobj.parse_dss()
+    
+    """
     def __init__(self,
                  dssfile: str,
                  include_DERs: bool =True,
                  DER_pf: float = 0.9,
-                 include_secondary_network: bool = False) -> None:
-        
-        logger.info(f'Initializing DSSManager')
-        
+                 include_secondary_network: bool = False) -> None:      
         """Initialize a DSSManager instance. This instance manages all the components in the distribution system.
 
         Args:
             dssfile (str): path of the dss master file (currently only supports OpenDSS files)
             include_DERs (bool, optional): Check whether to include DERs or not. Defaults to True.
             DER_pf (float, optional): Constant power factor of DERs. Defaults to 0.9.
-            include_secondary (bool, optional): Check whether to include secondary network or not. Defaults to False.
+            include_secondary_network (bool, optional): Check whether to include secondary network or not. Defaults to False.
         """
+        
+        logger.info(f'Initializing DSSManager')
         
         self.dss = dss
         self.dssfile = dssfile
@@ -49,6 +64,7 @@ class DSSManager:
         self.include_secondary_network = include_secondary_network  # check whether to include secondary or not
         self.DERs = None                                            # variable to store information on DERs if included
                 
+        self.circuit_data = {}                                      # store circuit metadata such as source bus, base voltage, etc
         # initialize parsing process variables and handlers
         self.__initialize()
     
@@ -179,6 +195,13 @@ class DSSManager:
                                     if items['from_bus'] not in self.load_handler.downstream_nodes_from_primary and
                                     items['to_bus'] not in self.load_handler.downstream_nodes_from_primary]           
         logger.info(f'Successfully parsed the required data from all handlers.')
+       
+        # parse additional circuit data
+        # add more as required in the future ... 
+        self.circuit_data = {
+            'substation': self.source,
+            'basekV_LL_circuit': self.basekV_LL
+        }
     
     @timethis    
     def saveparseddss(self,
@@ -223,8 +246,12 @@ class DSSManager:
 
         with open(f'{folder_name}/network_tree_data.json', 'w') as file:
             json.dump(network_tree_data, file)
+        
+        # save the circuit data as json
+        with open(f'{folder_name}/circuit_data.json', 'w') as file:
+            json.dump(self.circuit_data, file)
             
-        logger.info('Successfully saved the required files.')
+        logger.info('Successfully saved required files.')
 
 @timethis
 def main() -> None:

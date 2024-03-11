@@ -1,15 +1,20 @@
 from __future__ import annotations
 
-from folium import Map, CircleMarker, PolyLine
+from folium import Map, CircleMarker, PolyLine, Circle, IFrame, Popup, TileLayer
 import pandas as pd
 import plotly.graph_objects as go
 from typing import TYPE_CHECKING
+import branca
+import numpy as np
 
 if TYPE_CHECKING:
     from pyomo.environ import ConcreteModel
     import networkx as nx
 
-from ldrestoration.utils.networkalgorithms import loop_edges_to_tree_index
+''''
+Note: the plot functions are currently in beta state. 
+More changes will be introduced in future versions.
+'''
 
 # plot color codes for distribution system plots
 COLORCODES = {
@@ -21,70 +26,240 @@ COLORCODES = {
     'reactor': ['gray', 8]
 }  
 
-def plot_solution(model: ConcreteModel,
-                  network_tree: nx.DiGraph,
-                  network_graph: nx.Graph,
-                  save_plot: bool = True,
-                  filename: str = None) -> None:
-    # Create a folium map centered at a specific location within the system
-    distribution_map = Map(location=[network_tree.nodes[next(iter(network_tree.nodes))]['lat'],
-                                        network_tree.nodes[next(iter(network_tree.nodes))]['lon']], 
-                            zoom_start=20,
-                            max_zoom=100)
 
+def lat_lon_validator(lat: float, 
+                     lon: float) -> None:
+    """
+    Validates latitude and longitude values.
+
+    Args:
+        lat (float): Latitude value to validate.
+        lon (float): Longitude value to validate.
+    """
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        raise ValueError("Latitude must be between -90 and 90 degrees, and "
+                         "longitude must be between -180 and 180 degrees." 
+                         "Please either provide valid lat lon coordinates or use plot_cartesian_network() instead.")
+
+def plot_solution_map(model: ConcreteModel,
+                      network_tree: nx.DiGraph,
+                      network_graph: nx.Graph,
+                      save_plot: bool = True,
+                      filename: str = None,
+                      background: str = None,
+                      **kwargs) -> Map:
+    
+    """Plot the optimization solution in map with colored representation for each of the components
+    
+    Args:
+        model (ConcreteModel): Solved Pyomo concrete model 
+        network_tree (nx.DiGraph): networkx tree representation of the system
+        network_graph (nx.Graph): networkx graph representation of the system
+        save_plot (bool): whether to save the plot or not
+        filename (str): filename of the plot file to save       
+        background (str): Plot background. Can either choose "white" or "map"
+        **kwargs: other keyword arguments applicable to folium imports
+    
+    Returns:
+        Map:  The customized folium map. Users can customize the map as preferred.  
+    """    
+    
+    # validate if the lat lon coordinates are valid. We only check for the first coordinate 
+    lat_lon_validator(network_tree.nodes[next(iter(network_tree.nodes))]['lat'],
+                     network_tree.nodes[next(iter(network_tree.nodes))]['lon'])
+    
+    if background not in ["white", "map", None]:
+        raise ValueError("background can either be white, map, or None (defaults to map). Please provide a valid background.")
+    
+    if background == "white":
+        white_tile = branca.utilities.image_to_url([[1, 1], [1, 1]])
+        
+        # Create a folium map centered at a specific location within the system
+        distribution_map = Map(location=[network_tree.nodes[next(iter(network_tree.nodes))]['lat'],
+                                        network_tree.nodes[next(iter(network_tree.nodes))]['lon']], 
+                            tiles=white_tile, attr="white tile",
+                            zoom_start=13,
+                            max_zoom=100,
+                            **kwargs)
+    else:
+        # if not white then we default to map for "map" or None background        
+        # Create a folium map centered at a specific location within the system
+        distribution_map = Map(location=[network_tree.nodes[next(iter(network_tree.nodes))]['lat'],
+                                        network_tree.nodes[next(iter(network_tree.nodes))]['lon']],
+                            zoom_start=13,
+                            max_zoom=100,
+                            # crs="EPSG4326",
+                            **kwargs)        
+    
+    fault_indices = []
+    for fault in model.faults:
+        try:
+            fault_index = model.edges.index(fault) 
+        except ValueError:
+            fault_index = model.edges.index(fault[::-1])
+        fault_indices.append(fault_index)
+        
+            
+    powerflow = {index: abs(round(model.Pija[edge].value + model.Pijb[edge].value + model.Pijc[edge].value, 2)) for index, edge in enumerate(model.x_ij)}
+    min_flow = min(powerflow.values())
+    max_flow = max(powerflow.values())
+    widthmin = 1
+    widthmax = 20 
+    
     # circle markers as nodes of the system
     for node, data in network_tree.nodes(data=True):
-        lat, lon = data['lat'], data['lon']
-        
-        if model.si[model.nodes.index(node)].value == 1:
+        lat, lon = data['lat'], data['lon']        
+        node_index = model.nodes.index(node)
+        if round(model.si[node_index].value) == 1:
             node_radius=2 
             node_color="black"
         else:
-            node_radius=5 
-            node_color="red"
+            node_radius=2 
+            node_color="gray"
         
-        CircleMarker([lat, lon],
-                     radius=1, 
-                     color=node_color, 
-                     tooltip=f"<span style='font-size:1.5em;'>{node}</span>").add_to(distribution_map)
+        popup_content = f"<span style='font-size:1.5em;'><strong>Name</strong>: {node}<br> \
+                   <strong>Va</strong>: {round(np.sqrt(model.Via[node_index].value), 3) if model.Via[node_index].value is not None else 0.95}<br> \
+                       <strong>Vb</strong>: {round(np.sqrt(model.Vib[node_index].value), 3) if model.Vib[node_index].value is not None else 0.95}<br> \
+                           <strong>Vc</strong>: {round(np.sqrt(model.Vic[node_index].value), 3) if model.Vic[node_index].value is not None else 0.95}<br> \
+                               <strong>pickup status</strong>: {model.si[node_index].value}<br> \
+                                   <strong>energization status</strong>: {model.vi[node_index].value} </span>"
+        
+        iframe = IFrame(popup_content)
+        popup = Popup(iframe,
+                      min_width=300,
+                      max_width=300
+                      )
+        
+        Circle([lat, lon],
+               radius=node_radius, 
+               color=node_color, 
+               fill_color=node_color,
+               fill_opacity = 0.7,
+               opacity=0.7, 
+               tooltip=f"<span style='font-size:1.5em;'><strong>Name</strong>: {node} </span>",
+               popup=popup,
+               **kwargs).add_to(distribution_map)
 
     # These polylines connect nodes and distinguish their colors as per elements (transformer, line, switch)
     for from_node, to_node, data in network_graph.edges(data=True):
         source_data = network_tree.nodes[from_node]
         target_data = network_tree.nodes[to_node]            
-        points = [[source_data['lat'], source_data['lon']], [target_data['lat'], target_data['lon']]]            
-        
+        points = [[source_data['lat'], source_data['lon']], 
+                  [target_data['lat'], target_data['lon']]]            
         
         try:
             edge_index = model.edges.index((from_node,to_node))
         except ValueError:
-            edge_index = model.edges.index((from_node,to_node)[::-1])
+            edge_index = model.edges.index((to_node, from_node))
+        
+        if edge_index in model.virtual_switch_indices:
+            if from_node == 'sourcebus':
+                
+                popup_content = f"<span style='font-size:1.5em;'><strong>Name</strong>: {model.DERs[model.DERs['connected_bus'] == to_node]['name'].item()} <br> \
+                                 <strong>Bus</strong>: {to_node} <br> \
+                                     <strong>Rated kW</strong>: {model.DERs[model.DERs['connected_bus'] == to_node]['kW_rated'].item()} kW <br>\
+                                         <strong>Generated kW</strong>: {powerflow[edge_index]} kW </span>"
+                                     
+        
+                iframe = IFrame(popup_content)
+                popup = Popup(iframe,
+                              min_width=300,
+                              max_width=300
+                              )
+                
+                Circle([source_data['lat'], source_data['lon']],
+                       radius=100, 
+                       color='green', 
+                       fill_color='green',
+                       fill_opacity = 0.7,
+                       opacity=0.7,
+                       popup=popup,
+                       tooltip=f"<span style='font-size:1.5em;'><strong>DER</strong>: {model.DERs[model.DERs['connected_bus'] == to_node]['name'].item()} </span>").add_to(distribution_map)
+            else:
+                
+                popup_content = f"<span style='font-size:1.5em;'><strong>Name</strong>: {model.DERs[model.DERs['connected_bus'] == from_node]['name'].item()} <br> \
+                                 <strong>Bus</strong>: {from_node} <br> \
+                                     <strong>Rated kW</strong>: {model.DERs[model.DERs['connected_bus'] == from_node]['kW_rated'].item()} kW <br>\
+                                         <strong>Generated kW</strong>: {powerflow[edge_index]} kW </span>"
+        
+                iframe = IFrame(popup_content)
+                popup = Popup(iframe,
+                              min_width=300,
+                              max_width=300
+                              )
+                
+                Circle([source_data['lat'], source_data['lon']],
+                             radius=100, 
+                             color='green',  
+                             fill_color='green',
+                             fill_opacity = 0.7,
+                             opacity=0.7,
+                             popup=popup,
+                             tooltip=f"<span style='font-size:1.5em;'><strong>DER</strong>: {model.DERs[model.DERs['connected_bus'] == from_node]['name'].item()} </span>",
+                             **kwargs).add_to(distribution_map)
             
-        
-        if model.xij[edge_index].value == 1:
+            # place a marker and continue since we do not want virtual edges to display
+            continue
+
+        if round(model.xij[edge_index].value) == 1:
             if data['is_switch']:
-                colorcheck = "blue"
+                # if normally open switch is closed then green
+                # if sectionalizer is closed then gray
+                colorcheck = "green" if data['is_open'] else "blue"
                 weightcheck = 5
-            else:
-                colorcheck = "black"
-                weightcheck = 1
+            else:        
+                if powerflow[edge_index] > 0: 
+                    # normal line
+                    colorcheck = "black"
+                    weightcheck = (widthmax - widthmin) * ((powerflow[edge_index] - min_flow)/ (max_flow - min_flow)) + widthmin
+                else:
+                    colorcheck = "gray"
+                    weightcheck = widthmin 
         else:
-            if data['is_switch']:
-                colorcheck = "green"
+            # condition when line status is open
+            if edge_index in fault_indices:    
+                # only sectionalizers are faulted no tie so we do not even check if it is switch          
+                # every faulted line is red  
+                colorcheck = "red"
                 weightcheck = 5
             else:
-                colorcheck = "red"
-                weightcheck = 1
+                if data['is_switch']:
+                    # if non faulted line is opened then either there is no flow or its tie switch
+                    colorcheck = "pink" if data['is_open'] else "red"
+                    weightcheck = 5
+                else:
+                    colorcheck = "gray"
+                    weightcheck = widthmin
         
+        
+        # put in the contents for fault logic here
+        # if fault then color is red
+
+        popup_content = f"<span style='font-size:1.5em;'><strong>Name</strong>: {data['name']}<br> \
+            <strong>Pa</strong>: {abs(round(model.Pija[edge_index].value, 2))} kW<br> \
+                     <strong>Pb</strong>: {abs(round(model.Pijb[edge_index].value, 2))} kW<br> \
+                         <strong>Pc</strong>: {abs(round(model.Pijc[edge_index].value, 2))} kW<br> \
+                             <strong>element</strong>: {data['element'] if not data['is_switch'] else 'switch'} <br>\
+                                 <strong>connectivity status</strong>: {round(model.xij[edge_index].value)}</span>"
+        
+        iframe = IFrame(popup_content)
+        popup = Popup(iframe,
+                        min_width=300,
+                        max_width=300
+                        )
         PolyLine(points,
-                 color="black",
-                 weight=1, 
+                 color=colorcheck,
+                 weight=weightcheck, 
                  opacity=1,
-                 tooltip=f"<span style='font-size:1.5em;'>{data['element'] if not data['is_switch'] else 'switch'}</span>").add_to(distribution_map)
-    
+                 popup=popup,
+                 tooltip=f"<span style='font-size:1.5em;'><strong>Name</strong>: {data['name']} </span>",
+                 **kwargs).add_to(distribution_map)
+                 
     if save_plot:
         # Save the map to an HTML file
         distribution_map.save(f"{filename if filename else 'powerflow.html'}")
+        
+    return distribution_map
         
 
 def plot_network_on_map(network_tree: nx.DiGraph,
@@ -104,7 +279,7 @@ def plot_network_on_map(network_tree: nx.DiGraph,
     distribution_map = Map(location=[network_tree.nodes[next(iter(network_tree.nodes))]['lat'],
                                         network_tree.nodes[next(iter(network_tree.nodes))]['lon']], 
                             zoom_start=20,
-                            max_zoom=50)
+                            max_zoom=80)
 
     # circle markers as nodes of the system
     for node, data in network_tree.nodes(data=True):
@@ -153,7 +328,6 @@ def plot_cartesian_network(cartesian_tree: nx.DiGraph,
                                                                                                          'target', 
                                                                                                          'element', 
                                                                                                          'is_switch'])
-
     # Create a scatter plot for nodes
     node_trace = go.Scatter(
         x=nodes_df['X'],
@@ -186,10 +360,7 @@ def plot_cartesian_network(cartesian_tree: nx.DiGraph,
         )
         edge_traces.append(edge_trace)
 
-    # Create figure
     fig = go.Figure(data=[node_trace, *edge_traces])
-
-    # Update layout
     fig.update_layout(
         xaxis=dict(title='X'),
         yaxis=dict(title='Y'),

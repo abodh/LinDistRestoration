@@ -1,0 +1,8 @@
+name,kW_rated,connected_bus,phases
+steamgen1,3600.0,m1026chp-3,3
+diesel620,697.5,m1209-dies1,3
+lngengine100,112.5,m1142-lng1,3
+microturb-1,540.0,m2001der480-1,3
+lngengine1800,2025.0,m1089-lng1,3
+diesel590,663.3,m1089-dies1,3
+microturb-4,225.0,m1069-mt1,3
