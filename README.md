@@ -3,7 +3,5 @@ A linearized 3-phase unbalanced distribution power flow-based restoration for mu
 In progress ... 
 More updates coming soon ...
 
-# install packages
-`conda create --name <env_name> --file requirements.txt 
-OR
-`conda env create -f environment.yml
+# Getting started
+Please follow this online documentation for getting started with LinDistRestoration.
