@@ -3,7 +3,7 @@ name: ldrestoration
 on:
   push:
     branches:
-      - beta
+      - main
 permissions:
   contents: write
 jobs:
