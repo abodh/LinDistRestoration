@@ -1,6 +1,8 @@
 # Installation via GitHub repository
 
-The most recent version of *ldrestoration* can be installed from the GitHub repository. You can either visit the repository by navigating the link on the top right corner of this webpage and perform a manual installation or follow the steps below:
+Please follow these steps *after* you have successfully created an environment for installing the package. Currently, we only support installation via GitHub and will soon release the first version to make the installation possible via pip.
+
+The most recent version of LinDistRestoration can be installed from the GitHub repository. You can either visit the repository by navigating the link on the top right corner of this webpage and perform a manual installation or follow the steps below:
 
 - **Clone the repository to your local folder:**
 
@@ -16,7 +18,7 @@ This will create a local repository with the folder name `ldrestoration` in your
 - **Change the directory to `ldrestoration`:**
 
 ```bash
-cd ldrestoration
+cd LinDistRestoration
 ```
 
 - **Install the package:**

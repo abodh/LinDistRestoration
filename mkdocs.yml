@@ -1,7 +1,7 @@
 site_name: LinDistRestoration
 
 nav:
-  - index.md
+  - LinDistRestoration: index.md
   - Installation: 
     - Overview: installation/installation.md
     - GitHub: installation/github.md
@@ -14,10 +14,9 @@ nav:
       # - Plot parsed data: example/plotdata.md
       # - Base Restoration Model: example/restoration.md
       # - Plot Solution: example/plotsolution.md
-  - LinDistRestoration: 
-    - ldrestoration/dssparser.md
-  - License: 
-    - license.md
+  - ldrestoration: 
+    - DSSParser: ldrestoration/dssparser.md
+  - License: license.md
 
 repo_url: https://github.com/abodh/LinDistRestoration
 repo_name: abodh/LinDistRestoration
@@ -41,6 +40,7 @@ repo_name: abodh/LinDistRestoration
 #   - pymdownx.superfences
 
 markdown_extensions:
+  - attr_list
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -50,6 +50,9 @@ markdown_extensions:
   - pymdownx.superfences
   - toc:
       permalink: "#"
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
 
 extra_css:
   - https://cdn.jsdelivr.net/npm/prismjs@1.27.0/themes/prism.css

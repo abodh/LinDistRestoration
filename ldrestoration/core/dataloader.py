@@ -100,12 +100,14 @@ class DataLoader:
         """   
         
         try:
-            DERs = pd.read_csv(Path(self.data_folder_path) / 'DERs.csv')
+            DERs = pd.read_csv(Path(self.data_folder_path) / 'DERs.csv', delim_whitespace=True)
             return DERs
+        except pd.errors.EmptyDataError:
+            logger.warning("Empty file detected. This means that no DERs are detected in the base system.")
+            return None
         except FileNotFoundError:
-            logger.warning("This is to notify that DERs are excluded and if you want them to be included "
-                        "please either pass include_DERs=True in DSSManager module or provide DER details."
-                        "The latter will be included in the future ...")
+            logger.warning("The DER file is missing. Please either pass include_DERs=True in DSSManager module or provide DER details."
+                           "The latter will be included in the future ...")
             return None
         
     def load_network_normally_open_components(self) -> pd.DataFrame:

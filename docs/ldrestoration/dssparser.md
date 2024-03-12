@@ -1,4 +1,4 @@
-# DSSParser
+# OpenDSS to LinDistRestoration Parser
 
 **DSSManager**
 ::: ldrestoration.dssparser.dssparser.DSSManager

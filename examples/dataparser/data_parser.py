@@ -1,7 +1,7 @@
 from ldrestoration import DSSManager        
 
 def main():
-    dss_data = DSSManager(r"test_cases/ieee123Bus/Run_IEEE123Bus.dss",
+    dss_data = DSSManager(r"../test_cases/ieee123Bus/Run_IEEE123Bus.dss",
                           include_DERs=True,
                           include_secondary_network=False)
     dss_data.parsedss()

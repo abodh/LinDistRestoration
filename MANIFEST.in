@@ -5,4 +5,5 @@ include README.md
 
 graft docs
 graft examples
-graft src
+graft ldrestoration
+graft tests

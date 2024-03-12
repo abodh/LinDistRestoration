@@ -1,6 +1,11 @@
 # Installation of solvers
 
-The optimization model in *ldrestoration* is based off of *Pyomo*, which requires solvers to solve the model. There are several open source or commercial solvers that you can use with *ldrestoration*. For commercial solver, we recommend using *Gurobi* and if you are an academic researcher, you can leverage their free academic license. For more information please visit their webpage <a href="https://www.gurobi.com/academia/academic-program-and-licenses/" target="_blank">here</a>.
+You can either use open source or commercial solvers. The current version of LinDistRestoration is tested on the following solvers:
+
+- Gurobi 10.0.0
+- *TBD*
+
+The optimization model in LinDistRestoration is based off of *Pyomo*, which requires solvers to solve the model. For commercial solver, we recommend using *Gurobi* and if you are an academic researcher, you can leverage their free academic license. For more information please visit their webpage <a href="https://www.gurobi.com/academia/academic-program-and-licenses/" target="_blank">here</a>.
 
 # open source solvers:
 At this point, we have not tested any open source solvers and aim to do that in the next release. However, we believe that you can install the following solvers to get started if you do not have access to commercial solver.
