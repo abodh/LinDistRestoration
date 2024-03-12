@@ -39,14 +39,14 @@ class DSSManager:
     """
     def __init__(self,
                  dssfile: str,
-                 include_DERs: bool =True,
+                 include_DERs: bool = False,
                  DER_pf: float = 0.9,
                  include_secondary_network: bool = False) -> None:      
         """Initialize a DSSManager instance. This instance manages all the components in the distribution system.
 
         Args:
             dssfile (str): path of the dss master file (currently only supports OpenDSS files)
-            include_DERs (bool, optional): Check whether to include DERs or not. Defaults to True.
+            include_DERs (bool, optional): Check whether to include DERs or not. Defaults to False.
             DER_pf (float, optional): Constant power factor of DERs. Defaults to 0.9.
             include_secondary_network (bool, optional): Check whether to include secondary network or not. Defaults to False.
         """

@@ -1,7 +1,7 @@
 # ![](logo.png)
 
 !!! note
-    The package is currently in a development state and will have several code pushes in the next few weeks or so. Please use the current version carefully and keep updated with the code updates.
+    The package is currently in a development stage and will have several code pushes in the next few weeks or so. Please use the current version carefully and stay updated with the latest version.
 
 LinDistRestoration is a package to solve a 3-phase unbalanced distribution system restoration problem using mixed-integer linear programming. This package is intented for users interested in solving linear optimal power flow problem. The linear power flow model is extracted from [[1]](#ref1) and the base restoration models are based on [[2]](#ref2), [[3]](#ref3).
 
