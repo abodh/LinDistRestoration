@@ -5,6 +5,8 @@
 
 LinDistRestoration is a package to solve a 3-phase unbalanced distribution system restoration problem using mixed-integer linear programming. This package is intented for users interested in solving linear optimal power flow problem. The linear power flow model is extracted from [[1]](#ref1) and the base restoration models are based on [[2]](#ref2), [[3]](#ref3).
 
+Currently, LinDistRestoration supports parsing OpenDSS raw files and creates the data files required to solve the restoration model. User can either provide a valid OpenDSS file or create separate data files, see `examples/dataparser/parsed_data_iee123` for specific data files and their structure. The base restoration model solves the 3-phase unbalanced optimal power flow to maximize the load restoration based on faulted lines. LinDistRestoration does not support fault location module and it is assumed that user provides the fault data as an input. 
+
 ## Getting started
 Please follow this [installation](installation/installation.md){:target="_blank"} process and [examples](example/examples.md){:target="_blank"} to get started with LinDistRestoration.
 
