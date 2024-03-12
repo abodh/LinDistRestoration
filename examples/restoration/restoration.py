@@ -6,10 +6,7 @@ reflect this example and explanation of additional functionalities in LinDistRes
 
 # fault in line 35 - 36
 rm = RestorationBase('../dataparser/parsed_data_ieee123',
-                     faults=[('35', '36'),
-                             ('m1108315', 'm1108311'),
-                             ('m1209811', 'm1209807'),
-                             ('m1142843', 'l3081380')],
+                     faults=[('35', '36')],
                      base_kV_LL=4.16,
                      vmin=0.95,
                      vmax=1.05,
