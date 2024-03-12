@@ -6,9 +6,9 @@ Before diving into this section, please ensure that you have:
 2. Have installed a solver (open source or commercial).
 3. have either a working OpenDSS model or CSV input data files compatible with *ldrestoration*.  
 
-For 1 and 2, please refer to the [installation](../installation/installation.md) page for more details.
+For 1 and 2, please refer to the [installation](../installation/installation.md){:target="_blank"} page for more details.
 
-The general structure to solve a restoration model, assuming we are starting from the OpenDSS model, is to parse and save the required data structure, formulate the restoration model, solve the restoration model, and create plots or access results for further analysis. The examples on each of these processes can be accessed from [examples](examples.md)
+The general structure to solve a restoration model, assuming we are starting from the OpenDSS model, is to parse and save the required data structure, formulate the restoration model, solve the restoration model, and create plots or access results for further analysis. The examples on each of these processes can be accessed from [examples](examples.md){:target="_blank"}.
 
 Assuming the data is parsed from OpenDSS in the current directory, the optimal power flow for IEEE123 bus system with base model can be executed with the following steps. Here, `rm_solved` is the solved *pyomo* restoration model and `results` is the *pyomo* results object. 
 
