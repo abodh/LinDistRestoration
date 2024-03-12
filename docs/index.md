@@ -1,4 +1,4 @@
-# ![](logo.svg)
+# ![](logo.png)
 
 !!! note
     The package is currently in a development state and will have several code pushes in the next few weeks or so. Please use the current version carefully and keep updated with the code updates.
