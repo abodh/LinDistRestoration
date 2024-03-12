@@ -1,11 +1,11 @@
-# ![](docs/logo.png)
+## ![](docs/logo.png)
 
 > [!Note]
 > The package is currently in a development state and will have several code pushes in the next few weeks or so. Please use the current version carefully and keep updated with the code updates.
 
 LinDistRestoration is a package that solves a 3-phase unbalanced distribution system restoration problem using mixed-integer linear programming. This package is intended for users interested in solving linear optimal power flow problems. The linear power flow model is extracted from [1], and the base restoration models are based on [2] and [3].
 
-# Getting started
+## Getting started
 Please follow this online <a href="https://abodh.github.io/LinDistRestoration/" target="_blank">documentation</a> to get started with LinDistRestoration.
 
 ## References
