@@ -5,3 +5,4 @@ __pycache__
 *.dbl
 *.egg-info
 .vscode
+id_rs*
