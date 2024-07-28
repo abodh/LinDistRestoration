@@ -5,16 +5,20 @@ reflect this example and explanation of additional functionalities in LinDistRes
 """
 
 # fault in line 35 - 36
-rm = RestorationBase('../dataparser/parsed_data_ieee123',
-                     faults=[('35', '36')],
-                     base_kV_LL=4.16,
-                     vmin=0.95,
-                     vmax=1.05,
-                     psub_max=5000)
+rm = RestorationBase(
+    "../dataparser/parsed_data_9500_der",
+    faults=[],
+    base_kV_LL=12.47,
+    vmin=0.9,
+    vmax=1.1,
+    psub_max=5000,
+)
 
 # load the objective of the problem
 rm.objective_load_and_switching()
 
+breakpoint()
 # solve the restoration model
-restoration_model, results = rm.solve_model(solver = 'gurobi',
-                                            tee = True)
+restoration_model, results = rm.solve_model(solver="gurobi", tee=True)
+rm.save_variable_results(results)
+breakpoint()

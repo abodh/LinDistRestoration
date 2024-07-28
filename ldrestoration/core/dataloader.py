@@ -100,7 +100,7 @@ class DataLoader:
         """   
         
         try:
-            DERs = pd.read_csv(Path(self.data_folder_path) / 'DERs.csv', delim_whitespace=True)
+            DERs = pd.read_csv(Path(self.data_folder_path) / 'DERs.csv', delimiter=',')
             return DERs
         except pd.errors.EmptyDataError:
             logger.warning("Empty file detected. This means that no DERs are detected in the base system.")
