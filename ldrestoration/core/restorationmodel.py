@@ -682,8 +682,7 @@ class RestorationModel:
                     np.array(eval(each_line["z_matrix_imag"])) * each_line["length"]
                 )
 
-                # baseZ = each_line['base_kv_LL'] ** 2
-                baseZ = 12.47**2
+                baseZ = each_line["base_kv_LL"] ** 2
 
                 # ----------------------------------------------- Phase A -----------------------------------------------------------------
                 if "a" in each_line["phases"]:
@@ -1167,14 +1166,29 @@ class RestorationModel:
             self.model.substation_positive_flow = ConstraintList()
 
             # self.edge_indices_in_tree[(each_line['from_bus'], each_line['to_bus'])]
+            substation_index = self.node_indices_in_tree[
+                self.circuit_data["substation"]
+            ]
 
-            self.model.substation_positive_flow.add(self.model.Pija[0] >= 0)
-            self.model.substation_positive_flow.add(self.model.Pijb[0] >= 0)
-            self.model.substation_positive_flow.add(self.model.Pijc[0] >= 0)
+            self.model.substation_positive_flow.add(
+                self.model.Pija[substation_index] >= 0
+            )
+            self.model.substation_positive_flow.add(
+                self.model.Pijb[substation_index] >= 0
+            )
+            self.model.substation_positive_flow.add(
+                self.model.Pijc[substation_index] >= 0
+            )
 
-            self.model.substation_positive_flow.add(self.model.Pija[0] <= psub_max)
-            self.model.substation_positive_flow.add(self.model.Pijb[0] <= psub_max)
-            self.model.substation_positive_flow.add(self.model.Pijc[0] <= psub_max)
+            self.model.substation_positive_flow.add(
+                self.model.Pija[substation_index] <= psub_max
+            )
+            self.model.substation_positive_flow.add(
+                self.model.Pijb[substation_index] <= psub_max
+            )
+            self.model.substation_positive_flow.add(
+                self.model.Pijc[substation_index] <= psub_max
+            )
 
             logger.info(
                 f"Successfully added substation positive flow constraint as {self.model.substation_positive_flow}"
