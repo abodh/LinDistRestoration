@@ -1242,38 +1242,33 @@ class RestorationModel:
             for fault in self.model.faults:
 
                 # if fault is in a sectionalizer then the sectionalizer opens itself
-                if (
-                    self.edge_indices_in_tree[fault]
-                    in self.sectionalizing_switch_indices
-                ) or (
-                    self.edge_indices_in_tree[fault[::-1]]
-                    in self.sectionalizing_switch_indices
-                ):
+                try:
+                    fault_in_switch = (
+                        True
+                        if self.edge_indices_in_tree[fault]
+                        in self.sectionalizing_switch_indices
+                        else False
+                    )
+                    if fault_in_switch:
+                        fault_sectionalizers = [fault]
+                except KeyError:
                     try:
-                        if (
-                            self.edge_indices_in_tree[fault]
+                        fault_in_switch = (
+                            True
+                            if self.edge_indices_in_tree[fault[::-1]]
                             in self.sectionalizing_switch_indices
-                        ):
+                            else False
+                        )
+                        if fault_in_switch:
                             fault_sectionalizers = [fault]
                     except KeyError:
-
-                        try:
-                            if (
-                                self.edge_indices_in_tree[fault[::-1]]
-                                in self.sectionalizing_switch_indices
-                            ):
-                                fault_sectionalizers = [fault[::-1]]
-
-                        except KeyError:
-                            logger.error(
-                                f"The edge {fault} does not exist in the network."
-                            )
-                            raise KeyError(
-                                f"{fault} is either invalid or does not exist in the network. Please provide a valid edge with fault."
-                            )
+                        logger.error(f"The edge {fault} does not exist in the network.")
+                        raise KeyError(
+                            f"{fault} is either invalid or does not exist in the network. Please provide a valid edge with fault."
+                        )
 
                 # if fault is in a line then we identify the switches(sectionalizers + tie switches) that open in order to isolate the fault
-                else:
+                if not fault_in_switch:
                     try:
                         fault_sectionalizers = self.model.line_to_switch_dict[fault]
                     except KeyError:
