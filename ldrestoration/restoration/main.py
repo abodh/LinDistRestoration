@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from ldrestoration import (DataLoader, 
-                           RestorationModel)
+from ldrestoration import DataLoader, RestorationModel
 
-def restoration_base(data_path: str, 
-                     faults: list[tuple] = None,
-                     base_kV_LL: float = None,
-                     vmax: float = 1.05,
-                     vmin: float = 0.95,
-                     vsub: float = 1.05,
-                     psub_max: float = 5000,
-                     ) -> RestorationModel:
-    
+
+def restoration_base(
+    data_path: str,
+    faults: list[tuple] = None,
+    base_kV_LL: float = None,
+    vmax: float = 1.05,
+    vmin: float = 0.95,
+    vsub: float = 1.05,
+    psub_max: float = 5000,
+) -> RestorationModel:
     """Base restoration model to maximize load restoration with base constraints
 
     Args:
@@ -24,26 +24,20 @@ def restoration_base(data_path: str,
         psub_max (float, optional): maximum substation flow of the system in kW. Defaults to 5000 kW.
     Returns:
         RestorationModel: restoration model object
-    """    
-  
+    """
+
     # instantiate the data loader object and get the required data for the restoration
     data_object = DataLoader(data_path)
-    
+
     # instantiate the restoration object. Provide faulted edges in (u,v) format, if available.
     restoration_object = RestorationModel(data_object, faults=faults)
-    
+
+    # initialize variables for the base restoration model
+    restoration_object.initialize_base_variables()
+
     # load the constraint sets -> base constraints set contains all the necessary constraints for restoration
     # provide necessary voltage limit values and substation reference voltage
-    restoration_object.constraints_base(base_kV_LL=base_kV_LL,
-                                        vmax=vmax, 
-                                        vmin=vmin, 
-                                        vsub=vsub,
-                                        psub_max=psub_max)    
+    restoration_object.constraints_base(
+        base_kV_LL=base_kV_LL, vmax=vmax, vmin=vmin, vsub=vsub, psub_max=psub_max
+    )
     return restoration_object
-
-
-
-
-
-
-

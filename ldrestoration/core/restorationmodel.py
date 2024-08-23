@@ -89,8 +89,7 @@ class RestorationModel:
         self._constraints_list = None
 
         # the model data and variables are initialized within the class
-        self.__initialize_model_data()
-        self.__initialize_variables()
+        self._initialize_model_data()
 
         logger.info("Restoration model is successfully initialized.")
 
@@ -292,7 +291,7 @@ class RestorationModel:
         )
 
     @timethis
-    def __initialize_model_data(self) -> None:
+    def _initialize_model_data(self) -> None:
         """Initialize the restoration model by preparing the model and required data structure"""
 
         # system pdelements
@@ -406,7 +405,7 @@ class RestorationModel:
         self.model.faults = self.faults
 
     @timethis
-    def __initialize_variables(self) -> None:
+    def initialize_base_variables(self) -> None:
         """Initialize necessary variables for the optimization problem."""
         self.p_max = self.model.total_demand * BIG_M_POWER_MULTIPLIER
         self.p_min = -self.model.total_demand * BIG_M_POWER_MULTIPLIER
@@ -1217,10 +1216,10 @@ class RestorationModel:
                     sum(self.model.xij[edge_index] for edge_index in switches_in_loop)
                     <= len(switches_in_loop) - 1
                 )
-
-            logger.info(
+            msg_radiality = (
                 f"Successfully added radiality constraint as {self.model.radiality}"
             )
+            logger.info(msg_radiality)
 
             # append these constraints for user information
             self._constraints_list.append(self.model.radiality)
@@ -1260,9 +1259,12 @@ class RestorationModel:
                             else False
                         )
                         if fault_in_switch:
-                            fault_sectionalizers = [fault]
+                            fault_sectionalizers = [fault[::-1]]
                     except KeyError:
-                        logger.error(f"The edge {fault} does not exist in the network.")
+                        msg_non_existing_edge = (
+                            f"The edge {fault} does not exist in the network."
+                        )
+                        logger.error(msg_non_existing_edge)
                         raise KeyError(
                             f"{fault} is either invalid or does not exist in the network. Please provide a valid edge with fault."
                         )

@@ -7,7 +7,7 @@ reflect this example and explanation of additional functionalities in LinDistRes
 # fault in line 35 - 36
 rm = RestorationBase(
     "../dataparser/parsed_data_9500_noder",
-    faults=[],
+    faults=[("d5534967-1_int", "m1089174")],
     base_kV_LL=12.47,
     vmin=0.9,
     vmax=1.1,
@@ -19,4 +19,4 @@ rm.objective_load_and_switching()
 
 # solve the restoration model
 restoration_model, results = rm.solve_model(solver="appsi_highs", tee=True)
-rm.save_variable_results(results)
+# rm.save_variable_results(results)
