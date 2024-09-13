@@ -49,18 +49,18 @@ class missing_kVbase_error(Exception):
 
 
 class RestorationModel:
-    def __init__(self, data: DataLoader, faults: list[tuple] = None) -> None:
+    def __init__(self, data: dict[str, Any], faults: list[tuple] = None) -> None:
         """LinDistRestoration model
 
         Args:
-            data (DataLoader): instance of DataLoader class to load all of the required data
+            data (dict[str, Any]): a dictionary of required data for the optimization model
             faults (list[str]): list of line element edges with faults in (u,v) format
 
         Raises:
             FileNotFoundError: exception is raised when one or more files are missing
         """
         # assign attributes from the inputs
-        self.data = data.load_data()
+        self.data = data
         if faults is None:
             self.faults = []
         else:
@@ -566,11 +566,7 @@ class RestorationModel:
                     reactive_power_C,
                 ) = self.model.demand[
                     self.model.demand["bus"] == self.model.target_nodes[k]
-                ][
-                    ["P1", "Q1", "P2", "Q2", "P3", "Q3"]
-                ].values[
-                    0
-                ]
+                ][["P1", "Q1", "P2", "Q2", "P3", "Q3"]].values[0]
 
                 # flow constraint: Pin = Pdemand (if picked up) + Pout (same for Q)
                 self.model.power_flow.add(
@@ -674,18 +670,25 @@ class RestorationModel:
                 target_node_index = self.node_indices_in_tree[each_line["to_bus"]]
 
                 # pandas save arrays as strings (or objects). So we evaluate them and reapply array type
-                z_matrix_real = (
-                    np.array(eval(each_line["z_matrix_real"])) * each_line["length"]
-                )
-                z_matrix_imag = (
-                    np.array(eval(each_line["z_matrix_imag"])) * each_line["length"]
-                )
+                try:
+                    z_matrix_real = (
+                        np.array(each_line["z_matrix_real"]) * each_line["length"]
+                    )
+                    z_matrix_imag = (
+                        np.array(each_line["z_matrix_imag"]) * each_line["length"]
+                    )
+                except TypeError:
+                    z_matrix_real = (
+                        np.array(eval(each_line["z_matrix_real"])) * each_line["length"]
+                    )
+                    z_matrix_imag = (
+                        np.array(eval(each_line["z_matrix_imag"])) * each_line["length"]
+                    )
 
                 baseZ = each_line["base_kv_LL"] ** 2
 
                 # ----------------------------------------------- Phase A -----------------------------------------------------------------
                 if "a" in each_line["phases"]:
-
                     # obtain the resistance and reactance of the element
                     r_aa, x_aa, r_ab, x_ab, r_ac, x_ac = (
                         z_matrix_real[0, 0],
@@ -808,7 +811,6 @@ class RestorationModel:
 
                 # ----------------------------------------------- Phase B -----------------------------------------------------------------
                 if "b" in each_line["phases"]:
-
                     # obtain the resistance and reactance of the element
                     r_ba, x_ba, r_bb, x_bb, r_bc, x_bc = (
                         z_matrix_real[1, 0],
@@ -931,7 +933,6 @@ class RestorationModel:
 
                 # ----------------------------------------------- Phase C -----------------------------------------------------------------
                 if "c" in each_line["phases"]:
-
                     # obtain the resistance and reactance of the element
                     r_ca, x_ca, r_cb, x_cb, r_cc, x_cc = (
                         z_matrix_real[2, 0],
@@ -1239,7 +1240,6 @@ class RestorationModel:
             self.model.fault_sectionalize = ConstraintList()
 
             for fault in self.model.faults:
-
                 # if fault is in a sectionalizer then the sectionalizer opens itself
                 try:
                     fault_in_switch = (
@@ -1327,7 +1327,6 @@ class RestorationModel:
             """active power limits from DERs"""
             self.model.der_limits = ConstraintList()
             for _, each_row in self.model.DERs.iterrows():
-
                 # access edge indices from the network
                 edge_index = self.edge_indices_in_tree[
                     (self.circuit_data["substation"], each_row["connected_bus"])

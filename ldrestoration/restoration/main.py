@@ -4,7 +4,7 @@ from ldrestoration import DataLoader, RestorationModel
 
 
 def restoration_base(
-    data_path: str,
+    data_model,
     faults: list[tuple] = None,
     base_kV_LL: float = None,
     vmax: float = 1.05,
@@ -26,11 +26,8 @@ def restoration_base(
         RestorationModel: restoration model object
     """
 
-    # instantiate the data loader object and get the required data for the restoration
-    data_object = DataLoader(data_path)
-
     # instantiate the restoration object. Provide faulted edges in (u,v) format, if available.
-    restoration_object = RestorationModel(data_object, faults=faults)
+    restoration_object = RestorationModel(data_model, faults=faults)
 
     # initialize variables for the base restoration model
     restoration_object.initialize_base_variables()

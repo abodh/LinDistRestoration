@@ -74,9 +74,7 @@ class DSSManager:
         self.DERs = None  # variable to store information on DERs if included
         self.pv_systems = None
 
-        self.circuit_data = (
-            {}
-        )  # store circuit metadata such as source bus, base voltage, etc
+        self.circuit_data = {}  # store circuit metadata such as source bus, base voltage, etc
         # initialize parsing process variables and handlers
         self._initialize()
 
@@ -258,6 +256,10 @@ class DSSManager:
             ]
         logger.info(f"Successfully parsed the required data from all handlers.")
 
+        # the networkx data is saved as a serialized JSON
+        self.network_graph_data = json_graph.node_link_data(self.network_graph)
+        self.network_tree_data = json_graph.node_link_data(self.network_tree)
+
         # parse additional circuit data
         # add more as required in the future ...
         self.circuit_data = {
@@ -316,15 +318,11 @@ class DSSManager:
                 f"{folder_name}/pv_systems.csv", index=False
             )
 
-        # the networkx data is saved as a serialized JSON
-        network_graph_data = json_graph.node_link_data(self.network_graph)
-        network_tree_data = json_graph.node_link_data(self.network_tree)
-
         with open(f"{folder_name}/network_graph_data.json", "w") as file:
-            json.dump(network_graph_data, file)
+            json.dump(self.network_graph_data, file)
 
         with open(f"{folder_name}/network_tree_data.json", "w") as file:
-            json.dump(network_tree_data, file)
+            json.dump(self.network_tree_data, file)
 
         # save the circuit data as json
         with open(f"{folder_name}/circuit_data.json", "w") as file:
