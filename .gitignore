@@ -8,3 +8,12 @@ __pycache__
 id_rs*
 *.egg
 build
+
+# skills and agent
+.agents/
+skills-lock.json
+.github/copilot-instructions.md
+
+# venv and build
+.venv/
+dist/
