@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Union, Any, TYPE_CHECKING
 from functools import cache
-import logging
 import numpy as np
 import pandas as pd
 from pyomo.environ import (
@@ -31,10 +30,7 @@ from ldrestoration.utils.networkalgorithms import (
     associated_line_for_each_switch,
 )
 
-from ldrestoration.utils.loggerconfig import setup_logging
-
-setup_logging()
-logger = logging.getLogger(__name__)
+from ldrestoration.utils.loggerconfig import logger
 
 # the multiplier here means that the big M for each branch will be 10 times the max substation flow
 # for voltage 5 is enough since distribution systems voltage ranges from 0.95 to 1.05 per unit
@@ -75,9 +71,7 @@ class RestorationModel:
             self.normally_open_components = self.data["normally_open_components"]
             self.circuit_data = self.data["circuit_data"]
         except KeyError:
-            logger.debug(
-                "One or more files are missing. Please include all the essential files."
-            )
+            logger.debug("One or more files are missing. Please include all the essential files.")
             raise FileNotFoundError(
                 "One or more files are missing. Please make sure you included the following files: "
                 "network graph, networkx tree, pdelements, loads, normally open components, DERs [Optional]"
@@ -141,14 +135,14 @@ class RestorationModel:
         edge_indices = {}
         for _, each_line in self.pdelements.iterrows():
             try:
-                edge_indices[(each_line["from_bus"], each_line["to_bus"])] = (
-                    edge_index_map[(each_line["from_bus"], each_line["to_bus"])]
-                )
+                edge_indices[(each_line["from_bus"], each_line["to_bus"])] = edge_index_map[
+                    (each_line["from_bus"], each_line["to_bus"])
+                ]
             except KeyError:
                 try:
-                    edge_indices[(each_line["from_bus"], each_line["to_bus"])] = (
-                        edge_index_map[(each_line["to_bus"], each_line["from_bus"])]
-                    )
+                    edge_indices[(each_line["from_bus"], each_line["to_bus"])] = edge_index_map[
+                        (each_line["to_bus"], each_line["from_bus"])
+                    ]
                 except KeyError:
                     logger.error(
                         f"Please check the way edges are created in networkx as neither {(each_line['from_bus'], each_line['to_bus'])} or {(each_line['from_bus'], each_line['to_bus'])[::-1]} exist in your network graph or tree."
@@ -184,12 +178,8 @@ class RestorationModel:
             try:
                 node_indices[self.node_indices_in_tree[each_row["bus"]]] = demand_index
             except ValueError:
-                logger.error(
-                    f"Please check the nodes in the network graph/tree as {each_row['name']} does not exist."
-                )
-                raise ValueError(
-                    f"{each_row['name']} does not exist in the network graph or tree."
-                )
+                logger.error(f"Please check the nodes in the network graph/tree as {each_row['name']} does not exist.")
+                raise ValueError(f"{each_row['name']} does not exist in the network graph or tree.")
 
         return node_indices
 
@@ -211,9 +201,7 @@ class RestorationModel:
         all_switches = sectionalizers + self.normally_open_tuples
 
         for switch_edge in all_switches:
-            element_to_switch_mapper = associated_line_for_each_switch(
-                self.network_graph, switch_edge
-            )
+            element_to_switch_mapper = associated_line_for_each_switch(self.network_graph, switch_edge)
             for line, _ in element_to_switch_mapper.items():
                 if line not in line_to_switch:
                     line_to_switch[line] = [switch_edge]
@@ -299,8 +287,7 @@ class RestorationModel:
 
         # normally closed sectionalizing switches
         self.model.sectionalizing_switches = self.pdelements[
-            (self.pdelements["is_switch"] == True)
-            & (self.pdelements["is_open"] == False)
+            (self.pdelements["is_switch"] == True) & (self.pdelements["is_open"] == False)
         ].reset_index(drop=True)
 
         # normally open tie switches
@@ -308,26 +295,20 @@ class RestorationModel:
             # if DERs exists, tie switches should be differentiated from virtual switches
             # tie switches
             tie_switch_names = self.normally_open_components[
-                ~self.normally_open_components["normally_open_components"].isin(
-                    self.DERs["name"]
-                )
+                ~self.normally_open_components["normally_open_components"].isin(self.DERs["name"])
             ]
             self.model.tie_switches = self.pdelements[
-                self.pdelements["name"].isin(
-                    tie_switch_names["normally_open_components"]
-                )
+                self.pdelements["name"].isin(tie_switch_names["normally_open_components"])
             ].reset_index(drop=True)
 
             # virtual switches
-            self.model.virtual_switches = self.pdelements[
-                self.pdelements["name"].isin(self.DERs["name"])
-            ].reset_index(drop=True)
+            self.model.virtual_switches = self.pdelements[self.pdelements["name"].isin(self.DERs["name"])].reset_index(
+                drop=True
+            )
 
         else:
             self.model.tie_switches = self.pdelements[
-                self.pdelements["name"].isin(
-                    self.normally_open_components["normally_open_components"]
-                )
+                self.pdelements["name"].isin(self.normally_open_components["normally_open_components"])
             ].reset_index(drop=True)
 
             # virtual switches will be None if DERs do not exist
@@ -346,9 +327,7 @@ class RestorationModel:
         # we now add DERs and normally open switches to identify potential cycles in the network in any reconfiguration setup
         # keep graph separate from trees in a sense that graph can have cycles as we introduce it here by adding tie and virtual switches
         for _, row in self.pdelements[
-            self.pdelements["name"].isin(
-                self.normally_open_components["normally_open_components"]
-            )
+            self.pdelements["name"].isin(self.normally_open_components["normally_open_components"])
         ].iterrows():
             # update the edge and graph with additional edges i.e. tie switches and virtual switches -> if any
             self.model.edges.append((row["from_bus"], row["to_bus"]))
@@ -368,21 +347,15 @@ class RestorationModel:
         # obtain cycles in a network and convert the nodes to edge indices
         # self.model.cycles = network_cycles_simple(self.network_graph)
         self.model.cycles = network_cycles_basis(self.network_graph)
-        self.model.loop_edge_idxs = loop_edges_to_tree_index(
-            self.model.cycles, self.model.edges
-        )
-        logger.info(
-            "Obtained cycles in the network and converted them to edge indices."
-        )
+        self.model.loop_edge_idxs = loop_edges_to_tree_index(self.model.cycles, self.model.edges)
+        logger.info("Obtained cycles in the network and converted them to edge indices.")
 
         # from nodes and to nodes
         self.model.source_nodes, self.model.target_nodes = zip(*self.model.edges)
 
         # overall demand of the system (per phase)
         self.model.demand = self.loads
-        self.model.active_demand_each_node = (
-            self.model.demand["P1"] + self.model.demand["P2"] + self.model.demand["P3"]
-        )
+        self.model.active_demand_each_node = self.model.demand["P1"] + self.model.demand["P2"] + self.model.demand["P3"]
         self.model.total_demand = self.model.active_demand_each_node.sum()
 
         # number of nodes and edges from graph -> since they have tie and virtual switches added
@@ -420,24 +393,12 @@ class RestorationModel:
         self.model.xij = Var(self.model.x_ij, bounds=(0, 1), domain=Binary)
 
         # power
-        self.model.Pija = Var(
-            self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals
-        )
-        self.model.Pijb = Var(
-            self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals
-        )
-        self.model.Pijc = Var(
-            self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals
-        )
-        self.model.Qija = Var(
-            self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals
-        )
-        self.model.Qijb = Var(
-            self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals
-        )
-        self.model.Qijc = Var(
-            self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals
-        )
+        self.model.Pija = Var(self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals)
+        self.model.Pijb = Var(self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals)
+        self.model.Pijc = Var(self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals)
+        self.model.Qija = Var(self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals)
+        self.model.Qijb = Var(self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals)
+        self.model.Qijc = Var(self.model.x_ij, bounds=(self.p_min, self.p_max), domain=Reals)
 
         # voltage
         self.model.Via = Var(self.model.v_i, domain=Reals)
@@ -477,12 +438,8 @@ class RestorationModel:
 
         """
         if not base_kV_LL:
-            logger.error(
-                "base_kV_LL is a required argument. Please provide the line to line base kV for this circuit"
-            )
-            raise missing_kVbase_error(
-                "base_kV_LL is missing. Please provide line to line base kV for this circuit."
-            )
+            logger.error("base_kV_LL is a required argument. Please provide the line to line base kV for this circuit")
+            raise missing_kVbase_error("base_kV_LL is missing. Please provide line to line base kV for this circuit.")
 
         self._constraints_list = []
 
@@ -497,26 +454,14 @@ class RestorationModel:
                 return model.si[i] <= model.vi[i]
 
             def connectivity_vi_rule(model, i) -> Constraint:
-                return (
-                    model.xij[i]
-                    <= model.vi[self.node_indices_in_tree[model.source_nodes[i]]]
-                )
+                return model.xij[i] <= model.vi[self.node_indices_in_tree[model.source_nodes[i]]]
 
             def connectivity_vj_rule(model, i) -> Constraint:
-                return (
-                    model.xij[i]
-                    <= model.vi[self.node_indices_in_tree[model.target_nodes[i]]]
-                )
+                return model.xij[i] <= model.vi[self.node_indices_in_tree[model.target_nodes[i]]]
 
-            self.model.connectivity_si = Constraint(
-                self.model.v_i, rule=connectivity_si_rule
-            )
-            self.model.connectivity_vi = Constraint(
-                self.model.x_ij, rule=connectivity_vi_rule
-            )
-            self.model.connectivity_vj = Constraint(
-                self.model.x_ij, rule=connectivity_vj_rule
-            )
+            self.model.connectivity_si = Constraint(self.model.v_i, rule=connectivity_si_rule)
+            self.model.connectivity_vi = Constraint(self.model.x_ij, rule=connectivity_vi_rule)
+            self.model.connectivity_vj = Constraint(self.model.x_ij, rule=connectivity_vj_rule)
 
             logger.info(
                 f"Successfully added connectivity constraints as {self.model.connectivity_vi} and {self.model.connectivity_vj}"
@@ -546,14 +491,10 @@ class RestorationModel:
                 active_node_index = self.node_indices_in_tree[active_node]
 
                 children_nodes = [
-                    ch_nodes
-                    for ch_nodes, each_node in enumerate(self.model.source_nodes)
-                    if each_node == active_node
+                    ch_nodes for ch_nodes, each_node in enumerate(self.model.source_nodes) if each_node == active_node
                 ]
                 parent_nodes = [
-                    pa_nodes
-                    for pa_nodes, each_node in enumerate(self.model.target_nodes)
-                    if each_node == active_node
+                    pa_nodes for pa_nodes, each_node in enumerate(self.model.target_nodes) if each_node == active_node
                 ]
 
                 # access active and reactive power matching each indices
@@ -564,9 +505,9 @@ class RestorationModel:
                     reactive_power_B,
                     active_power_C,
                     reactive_power_C,
-                ) = self.model.demand[
-                    self.model.demand["bus"] == self.model.target_nodes[k]
-                ][["P1", "Q1", "P2", "Q2", "P3", "Q3"]].values[0]
+                ) = self.model.demand[self.model.demand["bus"] == self.model.target_nodes[k]][
+                    ["P1", "Q1", "P2", "Q2", "P3", "Q3"]
+                ].values[0]
 
                 # flow constraint: Pin = Pdemand (if picked up) + Pout (same for Q)
                 self.model.power_flow.add(
@@ -605,9 +546,7 @@ class RestorationModel:
                     - reactive_power_C * self.model.si[active_node_index]
                     == sum(self.model.Qijc[each_child] for each_child in children_nodes)
                 )
-            logger.info(
-                f"Successfully added power flow constraints as {self.model.power_flow}"
-            )
+            logger.info(f"Successfully added power flow constraints as {self.model.power_flow}")
 
             # append these constraints for user information
             self._constraints_list.append(self.model.power_flow)
@@ -638,9 +577,7 @@ class RestorationModel:
                 self.model.voltage_limits.add(self.model.Vib[node] >= vmin_sq)
                 self.model.voltage_limits.add(self.model.Vic[node] >= vmin_sq)
 
-            logger.info(
-                f"Successfully added voltage limit constraints as {self.model.voltage_limits}"
-            )
+            logger.info(f"Successfully added voltage limit constraints as {self.model.voltage_limits}")
 
             # append these constraints for user information
             self._constraints_list.append(self.model.voltage_limits)
@@ -660,9 +597,7 @@ class RestorationModel:
             self.model.voltage_balance = ConstraintList()
 
             for _, each_line in self.model.pdelements.iterrows():
-                edge_index = self.edge_indices_in_tree[
-                    (each_line["from_bus"], each_line["to_bus"])
-                ]
+                edge_index = self.edge_indices_in_tree[(each_line["from_bus"], each_line["to_bus"])]
 
                 # to remain consistent with the direction, we access nodes in the same order as the network edges
                 # note: the order of network edges could be different than the pdelement edges (due to u,v and v,u convention)
@@ -671,19 +606,11 @@ class RestorationModel:
 
                 # pandas save arrays as strings (or objects). So we evaluate them and reapply array type
                 try:
-                    z_matrix_real = (
-                        np.array(each_line["z_matrix_real"]) * each_line["length"]
-                    )
-                    z_matrix_imag = (
-                        np.array(each_line["z_matrix_imag"]) * each_line["length"]
-                    )
+                    z_matrix_real = np.array(each_line["z_matrix_real"]) * each_line["length"]
+                    z_matrix_imag = np.array(each_line["z_matrix_imag"]) * each_line["length"]
                 except TypeError:
-                    z_matrix_real = (
-                        np.array(eval(each_line["z_matrix_real"])) * each_line["length"]
-                    )
-                    z_matrix_imag = (
-                        np.array(eval(each_line["z_matrix_imag"])) * each_line["length"]
-                    )
+                    z_matrix_real = np.array(eval(each_line["z_matrix_real"])) * each_line["length"]
+                    z_matrix_imag = np.array(eval(each_line["z_matrix_imag"])) * each_line["length"]
 
                 baseZ = each_line["base_kv_LL"] ** 2
 
@@ -703,56 +630,26 @@ class RestorationModel:
                         self.model.voltage_balance.add(
                             self.model.Via[source_node_idx]
                             - self.model.Via[target_node_index]
-                            - 2
-                            * r_aa
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pija[edge_index]
-                            - 2
-                            * x_aa
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qija[edge_index]
-                            + (r_ab - np.sqrt(3) * x_ab)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijb[edge_index]
-                            + (x_ab + np.sqrt(3) * r_ab)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijb[edge_index]
-                            + (r_ac + np.sqrt(3) * x_ac)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijc[edge_index]
-                            + (x_ac - np.sqrt(3) * r_ac)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijc[edge_index]
-                            - BIG_M_VOLTAGE_MULTIPLIER
-                            * (1 - self.model.xij[edge_index])
+                            - 2 * r_aa / (KW_TO_MW_FACTOR * baseZ) * self.model.Pija[edge_index]
+                            - 2 * x_aa / (KW_TO_MW_FACTOR * baseZ) * self.model.Qija[edge_index]
+                            + (r_ab - np.sqrt(3) * x_ab) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijb[edge_index]
+                            + (x_ab + np.sqrt(3) * r_ab) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijb[edge_index]
+                            + (r_ac + np.sqrt(3) * x_ac) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijc[edge_index]
+                            + (x_ac - np.sqrt(3) * r_ac) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijc[edge_index]
+                            - BIG_M_VOLTAGE_MULTIPLIER * (1 - self.model.xij[edge_index])
                             <= 0
                         )
 
                         self.model.voltage_balance.add(
                             self.model.Via[source_node_idx]
                             - self.model.Via[target_node_index]
-                            - 2
-                            * r_aa
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pija[edge_index]
-                            - 2
-                            * x_aa
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qija[edge_index]
-                            + (r_ab - np.sqrt(3) * x_ab)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijb[edge_index]
-                            + (x_ab + np.sqrt(3) * r_ab)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijb[edge_index]
-                            + (r_ac + np.sqrt(3) * x_ac)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijc[edge_index]
-                            + (x_ac - np.sqrt(3) * r_ac)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijc[edge_index]
-                            + BIG_M_VOLTAGE_MULTIPLIER
-                            * (1 - self.model.xij[edge_index])
+                            - 2 * r_aa / (KW_TO_MW_FACTOR * baseZ) * self.model.Pija[edge_index]
+                            - 2 * x_aa / (KW_TO_MW_FACTOR * baseZ) * self.model.Qija[edge_index]
+                            + (r_ab - np.sqrt(3) * x_ab) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijb[edge_index]
+                            + (x_ab + np.sqrt(3) * r_ab) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijb[edge_index]
+                            + (r_ac + np.sqrt(3) * x_ac) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijc[edge_index]
+                            + (x_ac - np.sqrt(3) * r_ac) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijc[edge_index]
+                            + BIG_M_VOLTAGE_MULTIPLIER * (1 - self.model.xij[edge_index])
                             >= 0
                         )
                     else:
@@ -760,52 +657,24 @@ class RestorationModel:
                         self.model.voltage_balance.add(
                             self.model.Via[source_node_idx]
                             - self.model.Via[target_node_index]
-                            - 2
-                            * r_aa
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pija[edge_index]
-                            - 2
-                            * x_aa
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qija[edge_index]
-                            + (r_ab - np.sqrt(3) * x_ab)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijb[edge_index]
-                            + (x_ab + np.sqrt(3) * r_ab)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijb[edge_index]
-                            + (r_ac + np.sqrt(3) * x_ac)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijc[edge_index]
-                            + (x_ac - np.sqrt(3) * r_ac)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijc[edge_index]
+                            - 2 * r_aa / (KW_TO_MW_FACTOR * baseZ) * self.model.Pija[edge_index]
+                            - 2 * x_aa / (KW_TO_MW_FACTOR * baseZ) * self.model.Qija[edge_index]
+                            + (r_ab - np.sqrt(3) * x_ab) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijb[edge_index]
+                            + (x_ab + np.sqrt(3) * r_ab) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijb[edge_index]
+                            + (r_ac + np.sqrt(3) * x_ac) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijc[edge_index]
+                            + (x_ac - np.sqrt(3) * r_ac) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijc[edge_index]
                             == 0
                         )
 
                         self.model.voltage_balance.add(
                             self.model.Via[source_node_idx]
                             - self.model.Via[target_node_index]
-                            - 2
-                            * r_aa
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pija[edge_index]
-                            - 2
-                            * x_aa
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qija[edge_index]
-                            + (r_ab - np.sqrt(3) * x_ab)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijb[edge_index]
-                            + (x_ab + np.sqrt(3) * r_ab)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijb[edge_index]
-                            + (r_ac + np.sqrt(3) * x_ac)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijc[edge_index]
-                            + (x_ac - np.sqrt(3) * r_ac)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijc[edge_index]
+                            - 2 * r_aa / (KW_TO_MW_FACTOR * baseZ) * self.model.Pija[edge_index]
+                            - 2 * x_aa / (KW_TO_MW_FACTOR * baseZ) * self.model.Qija[edge_index]
+                            + (r_ab - np.sqrt(3) * x_ab) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijb[edge_index]
+                            + (x_ab + np.sqrt(3) * r_ab) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijb[edge_index]
+                            + (r_ac + np.sqrt(3) * x_ac) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijc[edge_index]
+                            + (x_ac - np.sqrt(3) * r_ac) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijc[edge_index]
                             == 0
                         )
 
@@ -825,56 +694,26 @@ class RestorationModel:
                         self.model.voltage_balance.add(
                             self.model.Vib[source_node_idx]
                             - self.model.Vib[target_node_index]
-                            - 2
-                            * r_bb
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pijb[edge_index]
-                            - 2
-                            * x_bb
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qijb[edge_index]
-                            + (r_ba + np.sqrt(3) * x_ba)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pija[edge_index]
-                            + (x_ba - np.sqrt(3) * r_ba)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qija[edge_index]
-                            + (r_bc - np.sqrt(3) * x_bc)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijc[edge_index]
-                            + (x_bc + np.sqrt(3) * r_bc)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijc[edge_index]
-                            - BIG_M_VOLTAGE_MULTIPLIER
-                            * (1 - self.model.xij[edge_index])
+                            - 2 * r_bb / (KW_TO_MW_FACTOR * baseZ) * self.model.Pijb[edge_index]
+                            - 2 * x_bb / (KW_TO_MW_FACTOR * baseZ) * self.model.Qijb[edge_index]
+                            + (r_ba + np.sqrt(3) * x_ba) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pija[edge_index]
+                            + (x_ba - np.sqrt(3) * r_ba) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qija[edge_index]
+                            + (r_bc - np.sqrt(3) * x_bc) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijc[edge_index]
+                            + (x_bc + np.sqrt(3) * r_bc) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijc[edge_index]
+                            - BIG_M_VOLTAGE_MULTIPLIER * (1 - self.model.xij[edge_index])
                             <= 0
                         )
 
                         self.model.voltage_balance.add(
                             self.model.Vib[source_node_idx]
                             - self.model.Vib[target_node_index]
-                            - 2
-                            * r_bb
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pijb[edge_index]
-                            - 2
-                            * x_bb
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qijb[edge_index]
-                            + (r_ba + np.sqrt(3) * x_ba)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pija[edge_index]
-                            + (x_ba - np.sqrt(3) * r_ba)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qija[edge_index]
-                            + (r_bc - np.sqrt(3) * x_bc)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijc[edge_index]
-                            + (x_bc + np.sqrt(3) * r_bc)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijc[edge_index]
-                            + BIG_M_VOLTAGE_MULTIPLIER
-                            * (1 - self.model.xij[edge_index])
+                            - 2 * r_bb / (KW_TO_MW_FACTOR * baseZ) * self.model.Pijb[edge_index]
+                            - 2 * x_bb / (KW_TO_MW_FACTOR * baseZ) * self.model.Qijb[edge_index]
+                            + (r_ba + np.sqrt(3) * x_ba) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pija[edge_index]
+                            + (x_ba - np.sqrt(3) * r_ba) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qija[edge_index]
+                            + (r_bc - np.sqrt(3) * x_bc) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijc[edge_index]
+                            + (x_bc + np.sqrt(3) * r_bc) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijc[edge_index]
+                            + BIG_M_VOLTAGE_MULTIPLIER * (1 - self.model.xij[edge_index])
                             >= 0
                         )
                     else:
@@ -882,52 +721,24 @@ class RestorationModel:
                         self.model.voltage_balance.add(
                             self.model.Vib[source_node_idx]
                             - self.model.Vib[target_node_index]
-                            - 2
-                            * r_bb
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pijb[edge_index]
-                            - 2
-                            * x_bb
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qijb[edge_index]
-                            + (r_ba + np.sqrt(3) * x_ba)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pija[edge_index]
-                            + (x_ba - np.sqrt(3) * r_ba)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qija[edge_index]
-                            + (r_bc - np.sqrt(3) * x_bc)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijc[edge_index]
-                            + (x_bc + np.sqrt(3) * r_bc)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijc[edge_index]
+                            - 2 * r_bb / (KW_TO_MW_FACTOR * baseZ) * self.model.Pijb[edge_index]
+                            - 2 * x_bb / (KW_TO_MW_FACTOR * baseZ) * self.model.Qijb[edge_index]
+                            + (r_ba + np.sqrt(3) * x_ba) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pija[edge_index]
+                            + (x_ba - np.sqrt(3) * r_ba) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qija[edge_index]
+                            + (r_bc - np.sqrt(3) * x_bc) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijc[edge_index]
+                            + (x_bc + np.sqrt(3) * r_bc) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijc[edge_index]
                             == 0
                         )
 
                         self.model.voltage_balance.add(
                             self.model.Vib[source_node_idx]
                             - self.model.Vib[target_node_index]
-                            - 2
-                            * r_bb
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pijb[edge_index]
-                            - 2
-                            * x_bb
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qijb[edge_index]
-                            + (r_ba + np.sqrt(3) * x_ba)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pija[edge_index]
-                            + (x_ba - np.sqrt(3) * r_ba)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qija[edge_index]
-                            + (r_bc - np.sqrt(3) * x_bc)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijc[edge_index]
-                            + (x_bc + np.sqrt(3) * r_bc)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijc[edge_index]
+                            - 2 * r_bb / (KW_TO_MW_FACTOR * baseZ) * self.model.Pijb[edge_index]
+                            - 2 * x_bb / (KW_TO_MW_FACTOR * baseZ) * self.model.Qijb[edge_index]
+                            + (r_ba + np.sqrt(3) * x_ba) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pija[edge_index]
+                            + (x_ba - np.sqrt(3) * r_ba) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qija[edge_index]
+                            + (r_bc - np.sqrt(3) * x_bc) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijc[edge_index]
+                            + (x_bc + np.sqrt(3) * r_bc) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijc[edge_index]
                             == 0
                         )
 
@@ -948,56 +759,26 @@ class RestorationModel:
                         self.model.voltage_balance.add(
                             self.model.Vic[source_node_idx]
                             - self.model.Vic[target_node_index]
-                            - 2
-                            * r_cc
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pijc[edge_index]
-                            - 2
-                            * x_cc
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qijc[edge_index]
-                            + (r_ca - np.sqrt(3) * x_ca)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pija[edge_index]
-                            + (x_ca + np.sqrt(3) * r_ca)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qija[edge_index]
-                            + (r_cb + np.sqrt(3) * x_cb)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijb[edge_index]
-                            + (x_cb - np.sqrt(3) * r_cb)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijb[edge_index]
-                            - BIG_M_VOLTAGE_MULTIPLIER
-                            * (1 - self.model.xij[edge_index])
+                            - 2 * r_cc / (KW_TO_MW_FACTOR * baseZ) * self.model.Pijc[edge_index]
+                            - 2 * x_cc / (KW_TO_MW_FACTOR * baseZ) * self.model.Qijc[edge_index]
+                            + (r_ca - np.sqrt(3) * x_ca) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pija[edge_index]
+                            + (x_ca + np.sqrt(3) * r_ca) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qija[edge_index]
+                            + (r_cb + np.sqrt(3) * x_cb) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijb[edge_index]
+                            + (x_cb - np.sqrt(3) * r_cb) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijb[edge_index]
+                            - BIG_M_VOLTAGE_MULTIPLIER * (1 - self.model.xij[edge_index])
                             <= 0
                         )
 
                         self.model.voltage_balance.add(
                             self.model.Vic[source_node_idx]
                             - self.model.Vic[target_node_index]
-                            - 2
-                            * r_cc
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pijc[edge_index]
-                            - 2
-                            * x_cc
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qijc[edge_index]
-                            + (r_ca - np.sqrt(3) * x_ca)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pija[edge_index]
-                            + (x_ca + np.sqrt(3) * r_ca)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qija[edge_index]
-                            + (r_cb + np.sqrt(3) * x_cb)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijb[edge_index]
-                            + (x_cb - np.sqrt(3) * r_cb)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijb[edge_index]
-                            + BIG_M_VOLTAGE_MULTIPLIER
-                            * (1 - self.model.xij[edge_index])
+                            - 2 * r_cc / (KW_TO_MW_FACTOR * baseZ) * self.model.Pijc[edge_index]
+                            - 2 * x_cc / (KW_TO_MW_FACTOR * baseZ) * self.model.Qijc[edge_index]
+                            + (r_ca - np.sqrt(3) * x_ca) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pija[edge_index]
+                            + (x_ca + np.sqrt(3) * r_ca) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qija[edge_index]
+                            + (r_cb + np.sqrt(3) * x_cb) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijb[edge_index]
+                            + (x_cb - np.sqrt(3) * r_cb) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijb[edge_index]
+                            + BIG_M_VOLTAGE_MULTIPLIER * (1 - self.model.xij[edge_index])
                             >= 0
                         )
                     else:
@@ -1005,58 +786,28 @@ class RestorationModel:
                         self.model.voltage_balance.add(
                             self.model.Vic[source_node_idx]
                             - self.model.Vic[target_node_index]
-                            - 2
-                            * r_cc
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pijc[edge_index]
-                            - 2
-                            * x_cc
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qijc[edge_index]
-                            + (r_ca - np.sqrt(3) * x_ca)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pija[edge_index]
-                            + (x_ca + np.sqrt(3) * r_ca)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qija[edge_index]
-                            + (r_cb + np.sqrt(3) * x_cb)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijb[edge_index]
-                            + (x_cb - np.sqrt(3) * r_cb)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijb[edge_index]
+                            - 2 * r_cc / (KW_TO_MW_FACTOR * baseZ) * self.model.Pijc[edge_index]
+                            - 2 * x_cc / (KW_TO_MW_FACTOR * baseZ) * self.model.Qijc[edge_index]
+                            + (r_ca - np.sqrt(3) * x_ca) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pija[edge_index]
+                            + (x_ca + np.sqrt(3) * r_ca) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qija[edge_index]
+                            + (r_cb + np.sqrt(3) * x_cb) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijb[edge_index]
+                            + (x_cb - np.sqrt(3) * r_cb) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijb[edge_index]
                             == 0
                         )
 
                         self.model.voltage_balance.add(
                             self.model.Vic[source_node_idx]
                             - self.model.Vic[target_node_index]
-                            - 2
-                            * r_cc
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Pijc[edge_index]
-                            - 2
-                            * x_cc
-                            / (KW_TO_MW_FACTOR * baseZ)
-                            * self.model.Qijc[edge_index]
-                            + (r_ca - np.sqrt(3) * x_ca)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pija[edge_index]
-                            + (x_ca + np.sqrt(3) * r_ca)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qija[edge_index]
-                            + (r_cb + np.sqrt(3) * x_cb)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Pijb[edge_index]
-                            + (x_cb - np.sqrt(3) * r_cb)
-                            / (baseZ * KW_TO_MW_FACTOR)
-                            * self.model.Qijb[edge_index]
+                            - 2 * r_cc / (KW_TO_MW_FACTOR * baseZ) * self.model.Pijc[edge_index]
+                            - 2 * x_cc / (KW_TO_MW_FACTOR * baseZ) * self.model.Qijc[edge_index]
+                            + (r_ca - np.sqrt(3) * x_ca) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pija[edge_index]
+                            + (x_ca + np.sqrt(3) * r_ca) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qija[edge_index]
+                            + (r_cb + np.sqrt(3) * x_cb) / (baseZ * KW_TO_MW_FACTOR) * self.model.Pijb[edge_index]
+                            + (x_cb - np.sqrt(3) * r_cb) / (baseZ * KW_TO_MW_FACTOR) * self.model.Qijb[edge_index]
                             == 0
                         )
 
-            logger.info(
-                f"Successfully added voltage constraints as {self.model.voltage_balance}"
-            )
+            logger.info(f"Successfully added voltage constraints as {self.model.voltage_balance}")
 
             # append these constraints for user information
             self._constraints_list.append(self.model.voltage_balance)
@@ -1075,47 +826,21 @@ class RestorationModel:
 
             self.model.powerflow_limit = ConstraintList()
             for k in self.model.x_ij:
-                self.model.powerflow_limit.add(
-                    self.model.Pija[k] <= self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Pijb[k] <= self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Pijc[k] <= self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Pija[k] >= -self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Pijb[k] >= -self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Pijc[k] >= -self.p_max * self.model.xij[k]
-                )
+                self.model.powerflow_limit.add(self.model.Pija[k] <= self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Pijb[k] <= self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Pijc[k] <= self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Pija[k] >= -self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Pijb[k] >= -self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Pijc[k] >= -self.p_max * self.model.xij[k])
 
-                self.model.powerflow_limit.add(
-                    self.model.Qija[k] <= self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Qijb[k] <= self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Qijc[k] <= self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Qija[k] >= -self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Qijb[k] >= -self.p_max * self.model.xij[k]
-                )
-                self.model.powerflow_limit.add(
-                    self.model.Qijc[k] >= -self.p_max * self.model.xij[k]
-                )
+                self.model.powerflow_limit.add(self.model.Qija[k] <= self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Qijb[k] <= self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Qijc[k] <= self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Qija[k] >= -self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Qijb[k] >= -self.p_max * self.model.xij[k])
+                self.model.powerflow_limit.add(self.model.Qijc[k] >= -self.p_max * self.model.xij[k])
 
-            logger.info(
-                f"Successfully added power flow limit constraints as {self.model.powerflow_limit}"
-            )
+            logger.info(f"Successfully added power flow limit constraints as {self.model.powerflow_limit}")
 
             # append these constraints for user information
             self._constraints_list.append(self.model.powerflow_limit)
@@ -1132,19 +857,11 @@ class RestorationModel:
             """ensure that substation voltage is at 1 per unit"""
             self.model.substation_voltage = ConstraintList()
 
-            substation_index = self.node_indices_in_tree[
-                self.circuit_data["substation"]
-            ]
+            substation_index = self.node_indices_in_tree[self.circuit_data["substation"]]
 
-            self.model.substation_voltage.add(
-                self.model.Via[substation_index] == vsub**2
-            )
-            self.model.substation_voltage.add(
-                self.model.Vib[substation_index] == vsub**2
-            )
-            self.model.substation_voltage.add(
-                self.model.Vic[substation_index] == vsub**2
-            )
+            self.model.substation_voltage.add(self.model.Via[substation_index] == vsub**2)
+            self.model.substation_voltage.add(self.model.Vib[substation_index] == vsub**2)
+            self.model.substation_voltage.add(self.model.Vic[substation_index] == vsub**2)
 
             logger.info(
                 f"Successfully added substation voltage (or subtransmission) initialization constraint at 1 pu as {self.model.substation_voltage}"
@@ -1166,29 +883,15 @@ class RestorationModel:
             self.model.substation_positive_flow = ConstraintList()
 
             # self.edge_indices_in_tree[(each_line['from_bus'], each_line['to_bus'])]
-            substation_index = self.node_indices_in_tree[
-                self.circuit_data["substation"]
-            ]
+            substation_index = self.node_indices_in_tree[self.circuit_data["substation"]]
 
-            self.model.substation_positive_flow.add(
-                self.model.Pija[substation_index] >= 0
-            )
-            self.model.substation_positive_flow.add(
-                self.model.Pijb[substation_index] >= 0
-            )
-            self.model.substation_positive_flow.add(
-                self.model.Pijc[substation_index] >= 0
-            )
+            self.model.substation_positive_flow.add(self.model.Pija[substation_index] >= 0)
+            self.model.substation_positive_flow.add(self.model.Pijb[substation_index] >= 0)
+            self.model.substation_positive_flow.add(self.model.Pijc[substation_index] >= 0)
 
-            self.model.substation_positive_flow.add(
-                self.model.Pija[substation_index] <= psub_max
-            )
-            self.model.substation_positive_flow.add(
-                self.model.Pijb[substation_index] <= psub_max
-            )
-            self.model.substation_positive_flow.add(
-                self.model.Pijc[substation_index] <= psub_max
-            )
+            self.model.substation_positive_flow.add(self.model.Pija[substation_index] <= psub_max)
+            self.model.substation_positive_flow.add(self.model.Pijb[substation_index] <= psub_max)
+            self.model.substation_positive_flow.add(self.model.Pijc[substation_index] <= psub_max)
 
             logger.info(
                 f"Successfully added substation positive flow constraint as {self.model.substation_positive_flow}"
@@ -1214,12 +917,9 @@ class RestorationModel:
                 # to ensure only switches are toogled to maintain radiality we observe switches in each loop
                 switches_in_loop = set(loops) & self.all_switch_indices
                 self.model.radiality.add(
-                    sum(self.model.xij[edge_index] for edge_index in switches_in_loop)
-                    <= len(switches_in_loop) - 1
+                    sum(self.model.xij[edge_index] for edge_index in switches_in_loop) <= len(switches_in_loop) - 1
                 )
-            msg_radiality = (
-                f"Successfully added radiality constraint as {self.model.radiality}"
-            )
+            msg_radiality = f"Successfully added radiality constraint as {self.model.radiality}"
             logger.info(msg_radiality)
 
             # append these constraints for user information
@@ -1243,10 +943,7 @@ class RestorationModel:
                 # if fault is in a sectionalizer then the sectionalizer opens itself
                 try:
                     fault_in_switch = (
-                        True
-                        if self.edge_indices_in_tree[fault]
-                        in self.sectionalizing_switch_indices
-                        else False
+                        True if self.edge_indices_in_tree[fault] in self.sectionalizing_switch_indices else False
                     )
                     if fault_in_switch:
                         fault_sectionalizers = [fault]
@@ -1254,16 +951,13 @@ class RestorationModel:
                     try:
                         fault_in_switch = (
                             True
-                            if self.edge_indices_in_tree[fault[::-1]]
-                            in self.sectionalizing_switch_indices
+                            if self.edge_indices_in_tree[fault[::-1]] in self.sectionalizing_switch_indices
                             else False
                         )
                         if fault_in_switch:
                             fault_sectionalizers = [fault[::-1]]
                     except KeyError:
-                        msg_non_existing_edge = (
-                            f"The edge {fault} does not exist in the network."
-                        )
+                        msg_non_existing_edge = f"The edge {fault} does not exist in the network."
                         logger.error(msg_non_existing_edge)
                         raise KeyError(
                             f"{fault} is either invalid or does not exist in the network. Please provide a valid edge with fault."
@@ -1275,42 +969,28 @@ class RestorationModel:
                         fault_sectionalizers = self.model.line_to_switch_dict[fault]
                     except KeyError:
                         try:
-                            fault_sectionalizers = self.model.line_to_switch_dict[
-                                fault[::-1]
-                            ]
+                            fault_sectionalizers = self.model.line_to_switch_dict[fault[::-1]]
                         except KeyError:
-                            logger.error(
-                                f"The edge {fault} does not exist in the network."
-                            )
+                            logger.error(f"The edge {fault} does not exist in the network.")
                             raise KeyError(
                                 f"{fault} is either invalid or does not exist in the network. Please provide a valid edge with fault."
                             )
 
-                logger.info(
-                    f"The fault at {fault} is isolated by {fault_sectionalizers}."
-                )
+                logger.info(f"The fault at {fault} is isolated by {fault_sectionalizers}.")
 
                 for each_sectionalizer in fault_sectionalizers:
                     try:
-                        sectionalizer_index = self.edge_indices_in_tree[
-                            tuple(each_sectionalizer)
-                        ]
+                        sectionalizer_index = self.edge_indices_in_tree[tuple(each_sectionalizer)]
                     except KeyError:
                         # this additional check is for sanity check.
-                        logger.error(
-                            f"The edge {each_sectionalizer} does not exist in the network."
-                        )
+                        logger.error(f"The edge {each_sectionalizer} does not exist in the network.")
                         raise KeyError(
                             f"{each_sectionalizer} is either invalid or does not exist in the network. Please provide a valid sectionalizer."
                         )
 
-                    self.model.fault_sectionalize.add(
-                        self.model.xij[sectionalizer_index] == 0
-                    )
+                    self.model.fault_sectionalize.add(self.model.xij[sectionalizer_index] == 0)
 
-            logger.info(
-                f"Successfully added fault sectionalizing constraint as {self.model.fault_sectionalize}."
-            )
+            logger.info(f"Successfully added fault sectionalizing constraint as {self.model.fault_sectionalize}.")
 
             # append these constraints for user information
             self._constraints_list.append(self.model.fault_sectionalize)
@@ -1328,13 +1008,9 @@ class RestorationModel:
             self.model.der_limits = ConstraintList()
             for _, each_row in self.model.DERs.iterrows():
                 # access edge indices from the network
-                edge_index = self.edge_indices_in_tree[
-                    (self.circuit_data["substation"], each_row["connected_bus"])
-                ]
+                edge_index = self.edge_indices_in_tree[(self.circuit_data["substation"], each_row["connected_bus"])]
                 self.model.der_limits.add(
-                    self.model.Pija[edge_index]
-                    + self.model.Pijb[edge_index]
-                    + self.model.Pijc[edge_index]
+                    self.model.Pija[edge_index] + self.model.Pijb[edge_index] + self.model.Pijc[edge_index]
                     <= each_row["kW_rated"]
                 )
 
@@ -1343,9 +1019,7 @@ class RestorationModel:
                 # self.model.der_limits.add(self.model.Pijb[edge_index] >= 0)
                 # self.model.der_limits.add(self.model.Pijc[edge_index] >= 0)
 
-            logger.info(
-                f"Successfully added DERs active power limit constraint as {self.model.der_limits}."
-            )
+            logger.info(f"Successfully added DERs active power limit constraint as {self.model.der_limits}.")
 
             # append these constraints for user information
             self._constraints_list.append(self.model.der_limits)
@@ -1354,9 +1028,7 @@ class RestorationModel:
             # generate constraints for DER limits if DERs are included
             der_limit_rule_base()
 
-        logger.info(
-            "The variables and constraints for the base restoration model has been successfully loaded."
-        )
+        logger.info("The variables and constraints for the base restoration model has been successfully loaded.")
 
     @timethis
     def objective_load_only(self) -> None:
@@ -1365,10 +1037,7 @@ class RestorationModel:
         self.model.restoration_objective = Objective(
             expr=(
                 sum(
-                    self.model.si[i]
-                    * self.model.active_demand_each_node[
-                        self.demand_node_indices_in_tree[i]
-                    ]
+                    self.model.si[i] * self.model.active_demand_each_node[self.demand_node_indices_in_tree[i]]
                     for i in self.model.v_i
                 )
             ),
@@ -1376,9 +1045,7 @@ class RestorationModel:
         )
 
     @timethis
-    def objective_load_and_switching(
-        self, alpha: float = 1.0, beta: float = 0.2
-    ) -> None:
+    def objective_load_and_switching(self, alpha: float = 1.0, beta: float = 0.2) -> None:
         """Objective to minimize the loss of load or maximize the total load pick up
 
         Args:
@@ -1389,25 +1056,17 @@ class RestorationModel:
             expr=(
                 alpha
                 * sum(
-                    self.model.si[i]
-                    * self.model.active_demand_each_node[
-                        self.demand_node_indices_in_tree[i]
-                    ]
+                    self.model.si[i] * self.model.active_demand_each_node[self.demand_node_indices_in_tree[i]]
                     for i in self.model.v_i
                 )
-                + beta
-                * sum(
-                    self.model.xij[j] for j in self.model.sectionalizing_switch_indices
-                )
+                + beta * sum(self.model.xij[j] for j in self.model.sectionalizing_switch_indices)
                 - beta * sum(self.model.xij[k] for k in self.model.tie_switch_indices)
             ),
             sense=maximize,
         )
 
     @timethis
-    def objective_load_switching_and_der(
-        self, alpha: float = 1.0, beta: float = 0.2, gamma: float = None
-    ) -> None:
+    def objective_load_switching_and_der(self, alpha: float = 1.0, beta: float = 0.2, gamma: float = None) -> None:
         """Objective to minimize the loss of load and switching actions (tie + virtual)
 
         Args:
@@ -1422,9 +1081,7 @@ class RestorationModel:
             gamma = 2 * len(self.model.tie_switch_indices) * beta
 
         if (self.model.virtual_switches is None) or (not self.virtual_switch_indices):
-            logger.error(
-                "Incorrect objective accessed. Please use objective without DERs"
-            )
+            logger.error("Incorrect objective accessed. Please use objective without DERs")
             raise NotImplementedError(
                 f"Cannot use objective_load_and_switching() without DERs. Please either include DERs or use 'objective_load_only()' objective"
             )
@@ -1433,19 +1090,12 @@ class RestorationModel:
             expr=(
                 alpha
                 * sum(
-                    self.model.si[i]
-                    * self.model.active_demand_each_node[
-                        self.demand_node_indices_in_tree[i]
-                    ]
+                    self.model.si[i] * self.model.active_demand_each_node[self.demand_node_indices_in_tree[i]]
                     for i in self.model.v_i
                 )
-                + beta
-                * sum(
-                    self.model.xij[j] for j in self.model.sectionalizing_switch_indices
-                )
+                + beta * sum(self.model.xij[j] for j in self.model.sectionalizing_switch_indices)
                 - beta * sum(self.model.xij[k] for k in self.model.tie_switch_indices)
-                - gamma
-                * sum(self.model.xij[l] for l in self.model.virtual_switch_indices)
+                - gamma * sum(self.model.xij[l] for l in self.model.virtual_switch_indices)
             ),
             sense=maximize,
         )
@@ -1492,9 +1142,7 @@ class RestorationModel:
             self.model.write(lp_filename, io_options=io_options, **kwargs)
 
         if solver == "gurobi":
-            optimization_solver = SolverFactory(
-                solver, solver_io="python", solver_options=solver_options, **kwargs
-            )
+            optimization_solver = SolverFactory(solver, solver_io="python", solver_options=solver_options, **kwargs)
         else:
             optimization_solver = SolverFactory(solver)
 
@@ -1508,9 +1156,7 @@ class RestorationModel:
         return self.model, results
 
     @timethis
-    def save_variable_results(
-        self, results: SolverResults, results_filename: str = None
-    ) -> None:
+    def save_variable_results(self, results: SolverResults, results_filename: str = None) -> None:
         """Save the pyomo results in a file. Currently only CSVs are supported.
 
         Args:

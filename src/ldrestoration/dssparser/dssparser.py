@@ -1,24 +1,21 @@
 from __future__ import annotations
-import opendssdirect as dss
-from pathlib import Path
-from datetime import datetime
-import pandas as pd
-import numpy as np
-from networkx.readwrite import json_graph
+
 import json
-import logging
+from pathlib import Path
 
+import pandas as pd
+from altdss import altdss as dss
+from ldrestoration.utils.loggerconfig import logger
+from networkx.readwrite import json_graph
+
+from ldrestoration.dssparser import (
+    BusHandler,
+    LoadHandler,
+    NetworkHandler,
+    PDElementHandler,
+    TransformerHandler,
+)
 from ldrestoration.utils.decors import timethis
-from ldrestoration.utils.loggerconfig import setup_logging
-
-setup_logging()
-logger = logging.getLogger(__name__)
-
-from ldrestoration.dssparser.bushandler import BusHandler
-from ldrestoration.dssparser.transformerhandler import TransformerHandler
-from ldrestoration.dssparser.pdelementshandler import PDElementHandler
-from ldrestoration.dssparser.networkhandler import NetworkHandler
-from ldrestoration.dssparser.loadhandler import LoadHandler
 
 
 class DSSManager:
@@ -34,47 +31,46 @@ class DSSManager:
     Examples:
         The only required argument is the OpenDSS master file. We assume that the master file compiles all other OpenDSS files.
         The DSSManager class is initiated first and a method parse_dss() will then parse the overall data.
-        >>> dataobj = DSSManager('ieee123master.dss', include_DERs=True)
+        >>> dataobj = DSSManager("ieee123master.dss", include_DERs=True)
         >>> dataobj.parse_dss()
 
     """
 
     def __init__(
         self,
-        dssfile: str,
+        dssfile: Path | str,
         include_DERs: bool = False,
-        DER_pf: float = 0.9,
+        DER_pf: float = 0.95,
         include_secondary_network: bool = False,
     ) -> None:
         """Initialize a DSSManager instance. This instance manages all the components in the distribution system.
 
         Args:
-            dssfile (str): path of the dss master file (currently only supports OpenDSS files)
+            dssfile (Path | str): path of the dss master file
             include_DERs (bool, optional): Check whether to include DERs or not. Defaults to False.
-            DER_pf (float, optional): Constant power factor of DERs. Defaults to 0.9.
+            DER_pf (float, optional): Constant power factor of DERs. Defaults to 0.95.
             include_secondary_network (bool, optional): Check whether to include secondary network or not. Defaults to False.
         """
+        msg = "Initializing DSSManager"
+        logger.info(msg)
 
-        logger.info(f"Initializing DSSManager")
+        if isinstance(dssfile, str):
+            self.dssfile = Path(dssfile)
 
-        self.dss = dss
-        self.dssfile = dssfile
-        # opendss direct checks for filenotfound exception so we do not require any exception here
-        self.dss.Text.Command(f"Redirect {self.dssfile}")
+        dss.Settings.AllowChangeDir = False
+        self.dss = dss.NewContext()
+        self.dss.ClearAll()
+        self.dss(f'Compile "{self.dssfile}"')
 
         # initialize other attributes
-        self.include_DERs = (
-            include_DERs  # variable to check whether to include DERs or not
-        )
+        self.include_DERs = include_DERs  # variable to check whether to include DERs or not
         self.DER_pf = DER_pf  # constant power factor of DERs
-        self.include_secondary_network = (
-            include_secondary_network  # check whether to include secondary or not
-        )
+        self.include_secondary_network = include_secondary_network  # check whether to include secondary or not
 
         self.DERs = None  # variable to store information on DERs if included
         self.pv_systems = None
-
         self.circuit_data = {}  # store circuit metadata such as source bus, base voltage, etc
+
         # initialize parsing process variables and handlers
         self._initialize()
 
@@ -94,9 +90,7 @@ class DSSManager:
         Returns:
             float: base kV of the circuit as referred to the source bus
         """
-        # make the source bus active before accessing the base kV since there is no provision to get base kV of circuit
-        self.dss.Circuit.SetActiveBus(self.source)
-        return round(self.dss.Bus.kVBase() * np.sqrt(3), 2)
+        return self.dss.Vsource.BasekV()[0]
 
     @property
     def source(self) -> str:
@@ -105,8 +99,7 @@ class DSSManager:
         Returns:
             str: returns the source bus of the circuit
         """
-        # typically the first bus is the source bus
-        return self.bus_names[0]
+        return self.dss.Vsource.Name[0]
 
     @timethis
     def _initialize(self) -> None:
@@ -116,17 +109,12 @@ class DSSManager:
         # if DERs are to be included then include virtual switches for DERs
         if self.include_DERs:
             self._initializeDERs()
-            msg_der_initialization = f"DERs virtual switches have been added successfully. The current version assumes a constant power factor of DERs; DERs power factor = {self.DER_pf}"
-            logger.info(msg_der_initialization)
-
             self._initialize_PV()
-            msg_pv_initialization = f"DERs virtual switches have been added successfully. The current version assumes a constant power factor of DERs; DERs power factor = {self.DER_pf}"
-            logger.info(msg_pv_initialization)
-
+            msg_initialization = f"DERs virtual switches have been added successfully. We assume a constant power factor of DERs; DERs power factor = {self.DER_pf}"
+            logger.info(msg_initialization)
         else:
-            logger.info(
-                "DERs virtual switches are not included due to exclusion of DERs."
-            )
+            msg = f"DERs virtual switches are excluded as include_DERs = {self.include_DERs}."
+            logger.info(msg)
 
         # initialize DSS handlers
         self._initialize_dsshandlers()
@@ -168,7 +156,7 @@ class DSSManager:
 
         # we also need to ensure that these switches are open as they are virtual switches
         for each_DERs in self.DERs:
-            self.dss.Text.Command(f'Open Line.{each_DERs["name"]}')
+            self.dss.Text.Command(f"Open Line.{each_DERs['name']}")
 
         self.dss.Solution.Solve()
 
@@ -183,9 +171,7 @@ class DSSManager:
             self.pv_systems.append(
                 {
                     "name": self.dss.PVsystems.Name(),
-                    "kW_rated": round(
-                        self.dss.PVsystems.kVARated() * self.dss.PVsystems.pf(), 2
-                    ),
+                    "kW_rated": round(self.dss.PVsystems.kVARated() * self.dss.PVsystems.pf(), 2),
                     "connected_bus": self.dss.CktElement.BusNames()[0],
                     "phases": self.dss.CktElement.NumPhases(),
                 }
@@ -201,29 +187,21 @@ class DSSManager:
         self.bus_handler = BusHandler(self.dss)
         self.transformer_handler = TransformerHandler(self.dss)
         self.pdelement_handler = PDElementHandler(self.dss)
-        self.network_handler = NetworkHandler(
-            self.dss, pdelement_handler=self.pdelement_handler
-        )
+        self.network_handler = NetworkHandler(self.dss, pdelement_handler=self.pdelement_handler)
 
         if self.include_secondary_network:
             logger.info("Considering entire system including secondary networks")
-            self.load_handler = LoadHandler(
-                self.dss, include_secondary_network=self.include_secondary_network
-            )
+            self.load_handler = LoadHandler(self.dss, include_secondary_network=self.include_secondary_network)
         else:
             # if primary loads are to be referred then we must pass network and transformer handlers
-            logger.info(
-                "Considering primary networks and aggregating loads by referring them to the primary node"
-            )
+            logger.info("Considering primary networks and aggregating loads by referring them to the primary node")
             self.load_handler = LoadHandler(
                 self.dss,
                 include_secondary_network=self.include_secondary_network,
                 network_handler=self.network_handler,
                 transformer_handler=self.transformer_handler,
             )
-        logger.info(
-            f'Successfully instantiated required handlers from "{self.dssfile}"'
-        )
+        logger.info(f'Successfully instantiated required handlers from "{self.dssfile}"')
 
     @timethis
     def parsedss(self) -> None:
@@ -231,28 +209,18 @@ class DSSManager:
         self.bus_data = self.bus_handler.get_buses()
         self.transformer_data = self.transformer_handler.get_transformers()
         self.pdelements_data = self.pdelement_handler.get_pdelements()
-        self.network_graph, self.network_tree, self.normally_open_components = (
-            self.network_handler.network_topology()
-        )
+        self.network_graph, self.network_tree, self.normally_open_components = self.network_handler.network_topology()
         self.load_data = self.load_handler.get_loads()
 
         if not self.include_secondary_network:
-            logger.info(
-                f"Excluding secondaries from final tree, graph configurations, and pdelements."
-            )
-            self.network_tree.remove_nodes_from(
-                self.load_handler.downstream_nodes_from_primary
-            )
-            self.network_graph.remove_nodes_from(
-                self.load_handler.downstream_nodes_from_primary
-            )
+            logger.info(f"Excluding secondaries from final tree, graph configurations, and pdelements.")
+            self.network_tree.remove_nodes_from(self.load_handler.downstream_nodes_from_primary)
+            self.network_graph.remove_nodes_from(self.load_handler.downstream_nodes_from_primary)
             self.pdelements_data = [
                 items
                 for items in self.pdelements_data
-                if items["from_bus"]
-                not in self.load_handler.downstream_nodes_from_primary
-                and items["to_bus"]
-                not in self.load_handler.downstream_nodes_from_primary
+                if items["from_bus"] not in self.load_handler.downstream_nodes_from_primary
+                and items["to_bus"] not in self.load_handler.downstream_nodes_from_primary
             ]
         logger.info(f"Successfully parsed the required data from all handlers.")
 
@@ -268,9 +236,7 @@ class DSSManager:
         }
 
     @timethis
-    def saveparseddss(
-        self, folder_name: str = f"parsed_data", folder_exist_ok: bool = False
-    ) -> None:
+    def saveparseddss(self, folder_name: str = f"parsed_data", folder_exist_ok: bool = False) -> None:
         """Saves the parsed data from all the handlers
 
         Args:
@@ -294,29 +260,21 @@ class DSSManager:
             logger.error(
                 "The folder already exists and the module is attempting to rewrite the data in the folder. Either provide a path in <folder_name> or mention <folder_exist_ok=True> to rewrite the existing files."
             )
-            raise FileExistsError(
-                "The folder or files already exist. Please provide a non-existent path."
-            )
+            raise FileExistsError("The folder or files already exist. Please provide a non-existent path.")
 
         # save all the data in the new folder
         # the non-networkx data are all saved as dataframe in csv
         pd.DataFrame(self.bus_data).to_csv(f"{folder_name}/bus_data.csv", index=False)
-        pd.DataFrame(self.transformer_data).to_csv(
-            f"{folder_name}/transformer_data.csv", index=False
-        )
-        pd.DataFrame(self.pdelements_data).to_csv(
-            f"{folder_name}/pdelements_data.csv", index=False
-        )
+        pd.DataFrame(self.transformer_data).to_csv(f"{folder_name}/transformer_data.csv", index=False)
+        pd.DataFrame(self.pdelements_data).to_csv(f"{folder_name}/pdelements_data.csv", index=False)
         pd.DataFrame(self.load_data).to_csv(f"{folder_name}/load_data.csv", index=False)
-        pd.DataFrame(
-            self.normally_open_components, columns=["normally_open_components"]
-        ).to_csv(f"{folder_name}/normally_open_components.csv", index=False)
+        pd.DataFrame(self.normally_open_components, columns=["normally_open_components"]).to_csv(
+            f"{folder_name}/normally_open_components.csv", index=False
+        )
 
         if self.DERs is not None:
             pd.DataFrame(self.DERs).to_csv(f"{folder_name}/DERs.csv", index=False)
-            pd.DataFrame(self.pv_systems).to_csv(
-                f"{folder_name}/pv_systems.csv", index=False
-            )
+            pd.DataFrame(self.pv_systems).to_csv(f"{folder_name}/pv_systems.csv", index=False)
 
         with open(f"{folder_name}/network_graph_data.json", "w") as file:
             json.dump(self.network_graph_data, file)

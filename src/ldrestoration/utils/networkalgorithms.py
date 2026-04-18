@@ -1,11 +1,8 @@
 import networkx as nx
-import logging
+
+from ldrestoration.utils.loggerconfig import logger
 
 from ldrestoration.utils.decors import timethis
-from ldrestoration.utils.loggerconfig import setup_logging
-
-setup_logging()
-logger = logging.getLogger(__name__)
 
 
 @timethis
@@ -19,9 +16,7 @@ def network_cycles_basis(network_graph: nx.Graph) -> list[list[str]]:
     cycles_edges = []
     for cycle in network_cycles:
         cycle_edges = []
-        cycle_edges = [
-            (cycle[i], cycle[(i + 1) % len(cycle)]) for i in range(len(cycle))
-        ]
+        cycle_edges = [(cycle[i], cycle[(i + 1) % len(cycle)]) for i in range(len(cycle))]
         cycles_edges.append(cycle_edges)
 
     return cycles_edges
@@ -39,9 +34,7 @@ def network_cycles_simple(network_graph: nx.Graph) -> list[list[str]]:
     cycles_edges = []
     for cycle in network_cycles:
         cycle_edges = []
-        cycle_edges = [
-            (cycle[i], cycle[(i + 1) % len(cycle)]) for i in range(len(cycle))
-        ]
+        cycle_edges = [(cycle[i], cycle[(i + 1) % len(cycle)]) for i in range(len(cycle))]
         cycles_edges.append(cycle_edges)
 
     return cycles_edges
@@ -59,18 +52,14 @@ def network_cycles_minimum(network_graph: nx.Graph) -> list[list[str]]:
     cycles_edges = []
     for cycle in network_cycles:
         cycle_edges = []
-        cycle_edges = [
-            (cycle[i], cycle[(i + 1) % len(cycle)]) for i in range(len(cycle))
-        ]
+        cycle_edges = [(cycle[i], cycle[(i + 1) % len(cycle)]) for i in range(len(cycle))]
         cycles_edges.append(cycle_edges)
 
     return cycles_edges
 
 
 @timethis
-def loop_edges_to_tree_index(
-    cycles: list[list[str]], edges: list[tuple[str, str]]
-) -> list[list[int]]:
+def loop_edges_to_tree_index(cycles: list[list[str]], edges: list[tuple[str, str]]) -> list[list[int]]:
     """Convert list of loops (cycles) with edges to their edge indices
 
     Args:
@@ -104,9 +93,7 @@ def loop_edges_to_tree_index(
 
 
 @timethis
-def associated_line_for_each_switch(
-    graph: nx.Graph, switch_edge: tuple
-) -> dict[str, list[tuple[str, str]]]:
+def associated_line_for_each_switch(graph: nx.Graph, switch_edge: tuple) -> dict[str, list[tuple[str, str]]]:
     """Access upstream and downstream switches associated with each non-switchable line
 
     Args:
@@ -141,7 +128,6 @@ def associated_line_for_each_switch(
 
         # now go for every neighbor. This ensures we traverse upstream and downstream of the node
         for neighbor in node_neighbors:
-
             # if node is a parent node then form (node,neighbor) else form (neighbor,node)
             edge = (node, neighbor) if node == switch_edge[0] else (neighbor, node)
 
@@ -156,9 +142,7 @@ def associated_line_for_each_switch(
                     logger.error(
                         f"Please check the way edges are created in networkx as {edge} or {edge[::-1]} does not exist in your network graph or tree."
                     )
-                    raise ValueError(
-                        f"{edge} OR {edge[::-1]} does not exist in the network graph or tree."
-                    )
+                    raise ValueError(f"{edge} OR {edge[::-1]} does not exist in the network graph or tree.")
 
             # if the edge is a switch then we will skip as we are looking for adjacent non-switchable lines not switches
             if graph.edges[edge].get("is_switch"):

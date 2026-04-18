@@ -3,11 +3,7 @@ from typing import Union
 import numpy as np
 from functools import cached_property
 
-import logging
-from ldrestoration.utils.loggerconfig import setup_logging
-
-setup_logging()
-logger = logging.getLogger(__name__)
+from ldrestoration.utils.loggerconfig import logger
 
 
 class PDElementHandler:
@@ -34,37 +30,29 @@ class PDElementHandler:
         """Returns the z_matrix of a specified line element.
 
         Returns:
-            real z_matrix, imag z_matrix (np.ndarray, np.ndarray): 3x3 numpy array of the z_matrix corresponding to the each of the phases(real,imag)
+            real z_matrix, imag z_matrix (np.ndarray, np.ndarray):
+            3x3 numpy array of the z_matrix corresponding to the each of the phases(real,imag)
         """
 
         if (len(self.dss_instance.CktElement.BusNames()[0].split(".")) == 4) or (
             len(self.dss_instance.CktElement.BusNames()[0].split(".")) == 1
         ):
-
             # this is the condition check for three phase since three phase is either represented by bus_name.1.2.3 or bus_name
-            z_matrix = np.array(self.dss_instance.Lines.RMatrix()) + 1j * np.array(
-                self.dss_instance.Lines.XMatrix()
-            )
+            z_matrix = np.array(self.dss_instance.Lines.RMatrix()) + 1j * np.array(self.dss_instance.Lines.XMatrix())
             z_matrix = z_matrix.reshape(3, 3)
 
             return np.real(z_matrix), np.imag(z_matrix)
 
         else:
-
             # for other than 3 phases
-            active_phases = [
-                int(phase)
-                for phase in self.dss_instance.CktElement.BusNames()[0].split(".")[1:]
-            ]
+            active_phases = [int(phase) for phase in self.dss_instance.CktElement.BusNames()[0].split(".")[1:]]
             z_matrix = np.zeros((3, 3), dtype=complex)
             r_matrix = self.dss_instance.Lines.RMatrix()
             x_matrix = self.dss_instance.Lines.XMatrix()
             counter = 0
             for _, row in enumerate(active_phases):
                 for _, col in enumerate(active_phases):
-                    z_matrix[row - 1, col - 1] = complex(
-                        r_matrix[counter], x_matrix[counter]
-                    )
+                    z_matrix[row - 1, col - 1] = complex(r_matrix[counter], x_matrix[counter])
                     counter = counter + 1
 
             return np.real(z_matrix), np.imag(z_matrix)
@@ -117,9 +105,7 @@ class PDElementHandler:
         flag = self.dss_instance.Transformers.First()
         while flag:
             transformer_name = self.dss_instance.Transformers.Name()
-            each_transformer_rating[transformer_name] = (
-                self.dss_instance.Transformers.kVA()
-            )
+            each_transformer_rating[transformer_name] = self.dss_instance.Transformers.kVA()
             flag = self.dss_instance.Transformers.Next()
 
         return each_transformer_rating
@@ -140,7 +126,8 @@ class PDElementHandler:
 
             # capacitor is a shunt element  and is not included
             if element_type != "capacitor":
-                # "Capacitors are shunt elements and are not modeled in this work. Regulators are not modeled as well."
+                # "Capacitors are shunt elements and are not modeled in this work.
+                # Regulators are not modeled as well."
                 if element_type == "line":
                     z_matrix_real, z_matrix_imag = self.__get_line_zmatrix()
                     each_element_data = {
@@ -158,46 +145,31 @@ class PDElementHandler:
                             {"a", "b", "c"}
                             if self.dss_instance.CktElement.NumPhases() == 3
                             else self.element_phase_identification(
-                                element_phases=self.dss_instance.CktElement.BusNames()[
-                                    0
-                                ].split(".")[1:]
+                                element_phases=self.dss_instance.CktElement.BusNames()[0].split(".")[1:]
                             )
                         ),
                         "is_switch": self.dss_instance.Lines.IsSwitch(),
                         "is_open": (
-                            self.dss_instance.CktElement.IsOpen(1, 0)
-                            or self.dss_instance.CktElement.IsOpen(2, 0)
+                            self.dss_instance.CktElement.IsOpen(1, 0) or self.dss_instance.CktElement.IsOpen(2, 0)
                         ),
                     }
                     # obtain the kVbase (line to line) of the element
                     # we assume the voltage level of the element is the voltage of its secondary bus
 
-                    self.dss_instance.Circuit.SetActiveBus(
-                        self.dss_instance.Lines.Bus2().split(".")[0]
-                    )
-                    each_element_data["base_kv_LL"] = round(
-                        self.dss_instance.Bus.kVBase() * np.sqrt(3), 2
-                    )
+                    self.dss_instance.Circuit.SetActiveBus(self.dss_instance.Lines.Bus2().split(".")[0])
+                    each_element_data["base_kv_LL"] = round(self.dss_instance.Bus.kVBase() * np.sqrt(3), 2)
 
                     # the loading is per conductor
                     each_element_data["normal_loading_kW"] = (
-                        each_element_data["base_kv_LL"]
-                        / np.sqrt(3)
-                        * self.dss_instance.Lines.NormAmps()
+                        each_element_data["base_kv_LL"] / np.sqrt(3) * self.dss_instance.Lines.NormAmps()
                         if each_element_data["num_phases"] == 1
-                        else each_element_data["base_kv_LL"]
-                        * np.sqrt(3)
-                        * self.dss_instance.Lines.NormAmps()
+                        else each_element_data["base_kv_LL"] * np.sqrt(3) * self.dss_instance.Lines.NormAmps()
                     )
 
                     each_element_data["emergency_loading_kW"] = (
-                        each_element_data["base_kv_LL"]
-                        / np.sqrt(3)
-                        * self.dss_instance.Lines.EmergAmps()
+                        each_element_data["base_kv_LL"] / np.sqrt(3) * self.dss_instance.Lines.EmergAmps()
                         if each_element_data["num_phases"] == 1
-                        else each_element_data["base_kv_LL"]
-                        * np.sqrt(3)
-                        * self.dss_instance.Lines.EmergAmps()
+                        else each_element_data["base_kv_LL"] * np.sqrt(3) * self.dss_instance.Lines.EmergAmps()
                     )
 
                 else:
@@ -213,12 +185,8 @@ class PDElementHandler:
                         "z_matrix_real": self.__get_nonline_zmatrix(),
                         "z_matrix_imag": self.__get_nonline_zmatrix(),
                         "length": 0.001,
-                        "from_bus": self.dss_instance.CktElement.BusNames()[0].split(
-                            "."
-                        )[0],
-                        "to_bus": self.dss_instance.CktElement.BusNames()[1].split(".")[
-                            0
-                        ],
+                        "from_bus": self.dss_instance.CktElement.BusNames()[0].split(".")[0],
+                        "to_bus": self.dss_instance.CktElement.BusNames()[1].split(".")[0],
                         # for non lines dss.Lines does not work so we need to work around with CktElement
                         # CktElement is activated along with PDElements
                         "num_phases": self.dss_instance.CktElement.NumPhases(),
@@ -226,9 +194,7 @@ class PDElementHandler:
                             {"a", "b", "c"}
                             if self.dss_instance.CktElement.NumPhases() == 3
                             else self.element_phase_identification(
-                                element_phases=self.dss_instance.CktElement.BusNames()[
-                                    0
-                                ].split(".")[1:]
+                                element_phases=self.dss_instance.CktElement.BusNames()[0].split(".")[1:]
                             )
                         ),
                         "is_switch": False,
@@ -237,36 +203,25 @@ class PDElementHandler:
 
                     # obtain the kVbase (line to line) of the element
                     # we assume the voltage level of the element is the voltage of its secondary bus
-                    self.dss_instance.Circuit.SetActiveBus(
-                        self.dss_instance.CktElement.BusNames()[1].split(".")[0]
-                    )
-                    each_element_data["base_kv_LL"] = round(
-                        self.dss_instance.Bus.kVBase() * np.sqrt(3), 2
-                    )
+                    self.dss_instance.Circuit.SetActiveBus(self.dss_instance.CktElement.BusNames()[1].split(".")[0])
+                    each_element_data["base_kv_LL"] = round(self.dss_instance.Bus.kVBase() * np.sqrt(3), 2)
 
                     # loading on the transformer is also on per phase basis
                     if element_type == "transformer":
                         each_element_data["normal_loading_kW"] = (
-                            self.transformer_rating[each_element_data["name"]]
-                            / each_element_data["num_phases"]
+                            self.transformer_rating[each_element_data["name"]] / each_element_data["num_phases"]
                         )
 
                         # setting emergency loading to 150% of the normal loading
-                        each_element_data["emergency_loading_kW"] = (
-                            1.5 * each_element_data["normal_loading_kW"]
-                        )
+                        each_element_data["emergency_loading_kW"] = 1.5 * each_element_data["normal_loading_kW"]
 
                     else:
                         self.dss_instance.Transformers.First()
                         rating_substation = self.dss_instance.Transformers.kVA()
-                        each_element_data["normal_loading_kW"] = (
-                            rating_substation / each_element_data["num_phases"]
-                        )
+                        each_element_data["normal_loading_kW"] = rating_substation / each_element_data["num_phases"]
 
                         # setting emergency loading to 150% of the normal loading
-                        each_element_data["emergency_loading_kW"] = (
-                            1.5 * each_element_data["normal_loading_kW"]
-                        )
+                        each_element_data["emergency_loading_kW"] = 1.5 * each_element_data["normal_loading_kW"]
 
                 pdelement_list.append(each_element_data)
             element_activity_status = self.dss_instance.PDElements.Next()

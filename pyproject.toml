@@ -2,6 +2,9 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/ldrestoration"]
+
 [project]
 name = "ldrestoration"
 version = "0.1.0"
@@ -21,9 +24,12 @@ classifiers = [
 ]
 dependencies = [
     "altdss[all]>=0.2.4",
+    "loguru>=0.7.3",
     "networkx>=3.6.1",
     "numpy>=2.4.4",
+    "pandas>=3.0.2",
     "polars>=1.40.0",
+    "pyarrow>=23.0.1",
     "pyomo>=6.10.0",
 ]
 
@@ -34,8 +40,11 @@ plot = [
 
 [dependency-groups]
 dev = [
+    "pandas-stubs>=3.0.0.260204",
     "prek>=0.3.9",
+    "pyarrow-stubs>=20.0.0.20251215",
     "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
     "ruff>=0.15.11",
     "ty>=0.0.31",
 ]
@@ -46,7 +55,45 @@ Documentation = "https://abodh.github.io/LinDistRestoration/"
 
 [tool.ruff]
 target-version = "py314"
-src = ["ldrestoration"]
+exclude = [
+    ".git",
+    ".ruff_cache",
+    ".venv",
+    "_build",
+    "build",
+    "dist",
+    "env",
+    "venv",
+]
+line-length = 99
+indent-width = 4
+
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP"]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+select = [
+    "C901",   # McCabe complexity
+    "E4",     # Subset of pycodestyle (E)
+    "E7",
+    "E9",
+    "EM",     # string formatting in an exception message
+    "F",      # Pyflakes
+    "W",      # pycodestyle warnings
+]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+"**/{tests,docs,tools}/*" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"

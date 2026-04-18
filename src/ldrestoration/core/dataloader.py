@@ -3,17 +3,12 @@ from typing import Any, TYPE_CHECKING
 import json
 from networkx.readwrite import json_graph
 from pathlib import Path
-import logging
 import pandas as pd
+
+from ldrestoration.utils.loggerconfig import logger
 
 if TYPE_CHECKING:
     import networkx as nx
-
-
-from ldrestoration.utils.loggerconfig import setup_logging
-
-setup_logging()
-logger = logging.getLogger(__name__)
 
 from ldrestoration import DSSManager
 
@@ -33,9 +28,7 @@ class DataLoader:
         self.dss_file_path = dss_file_path
 
         if not (self.data_folder_path or self.dss_file_path):
-            raise NotImplementedError(
-                "Please provide either data_folder_path or dss_file_path to extract the data"
-            )
+            raise NotImplementedError("Please provide either data_folder_path or dss_file_path to extract the data")
 
         if self.data_folder_path:
             if not Path(self.data_folder_path).is_dir():
@@ -138,9 +131,7 @@ class DataLoader:
         """
 
         try:
-            with open(
-                Path(self.data_folder_path) / "network_graph_data.json", "r"
-            ) as file:
+            with open(Path(self.data_folder_path) / "network_graph_data.json", "r") as file:
                 network_graph_file = json.load(file)
                 network_graph = json_graph.node_link_graph(network_graph_file)
             return network_graph
@@ -158,9 +149,7 @@ class DataLoader:
         """
 
         try:
-            with open(
-                Path(self.data_folder_path) / "network_tree_data.json", "r"
-            ) as file:
+            with open(Path(self.data_folder_path) / "network_tree_data.json", "r") as file:
                 network_tree_file = json.load(file)
                 network_tree = json_graph.node_link_graph(network_tree_file)
             return network_tree
@@ -197,9 +186,7 @@ class DataLoader:
             DERs = pd.read_csv(Path(self.data_folder_path) / "DERs.csv", delimiter=",")
             return DERs
         except pd.errors.EmptyDataError:
-            logger.warning(
-                "Empty file detected. This means that no DERs are detected in the base system."
-            )
+            logger.warning("Empty file detected. This means that no DERs are detected in the base system.")
             return None
         except FileNotFoundError:
             logger.warning(
@@ -216,9 +203,7 @@ class DataLoader:
         """
 
         try:
-            normally_open_components = pd.read_csv(
-                Path(self.data_folder_path) / "normally_open_components.csv"
-            )
+            normally_open_components = pd.read_csv(Path(self.data_folder_path) / "normally_open_components.csv")
             return normally_open_components
         except FileNotFoundError:
             raise FileNotFoundError(
@@ -234,9 +219,7 @@ class DataLoader:
         """
 
         try:
-            pdelements = pd.read_csv(
-                Path(self.data_folder_path) / "pdelements_data.csv"
-            )
+            pdelements = pd.read_csv(Path(self.data_folder_path) / "pdelements_data.csv")
             return pdelements
         except FileNotFoundError:
             raise FileNotFoundError(

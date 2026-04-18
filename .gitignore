@@ -17,3 +17,9 @@ skills-lock.json
 # venv and build
 .venv/
 dist/
+
+# examples
+examples/data_parser/*
+!examples/data_parser/*.py
+examples/restoration/*
+!examples/restoration/*.py

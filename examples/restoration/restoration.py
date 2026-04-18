@@ -1,4 +1,4 @@
-from ldrestoration import RestorationBase, DataLoader
+from ldrestoration import DataLoader, RestorationBase
 
 """Please follow the documentation for a quick start. The documentation will be updated soon to 
 reflect this example and explanation of additional functionalities in LinDistRestoration. 
