@@ -1,27 +1,21 @@
-from types import ModuleType
-from typing import Union
+from typing import TYPE_CHECKING
 import numpy as np
 from functools import cached_property
 
-from ldrestoration.utils.loggerconfig import logger
+if TYPE_CHECKING:
+    from altdss import AltDSS
+
+from ldrestoration.utils import logger
 
 
 class PDElementHandler:
-    """PDElementHandler deals with all the power delivery elements -> lines, transformers,
-    reactors, and capacitors. ALthough we have separate handlers for a few of them, we extract the PDelements here as they represent
-    edges for out network
-
-    Args:
-        dss_instance (ModuleType): redirected opendssdirect instance
-    """
-
-    def __init__(self, dss_instance: ModuleType) -> None:
+    def __init__(self, dss_instance: AltDSS) -> None:
         """Initialize a PDElementHandler instance. This instance deals with all the power delivery elements -> lines, transformers,
         reactors, and capacitors. ALthough we have separate handlers for a few of them, we extract the PDelements here as they represent
         edges for out network
 
         Args:
-            dss_instance (ModuleType): redirected opendssdirect instance
+            dss_instance (AltDSS): redirected AltDSS instance
         """
 
         self.dss_instance = dss_instance
@@ -110,13 +104,83 @@ class PDElementHandler:
 
         return each_transformer_rating
 
-    def get_pdelements(self) -> list[dict[str, Union[int, str, float, np.ndarray]]]:
-        """Extract the list of PDElement from the distribution model. Capacitors are excluded.
+    def get_pdelements(self) -> list[dict[str, int | str | float | np.ndarray]]:
+        """Extract the list of PDElement from the distribution model.
 
         Returns:
-            pdelement_list (list[dict[str,Union[int,str,float, np.ndarray]]]):
+            pdelement_list (list[dict[str, int | str | float | np.ndarray]]):
             list of pdelements with required information
         """
+        # ----------------  Abodh here ... ----------------
+        # def parse_phases(phases_str: str) -> set[int]:
+        #     """Parse phases from a string representation.
+
+        #     Args:
+        #         phases_str (str): The string representation of the phases.
+
+        #     Returns:
+        #         set[int]: A set of integers representing the phases. If the input string is empty, it returns a set containing {1, 2, 3} representing all three phases.
+        #     """
+        #     if not phases_str:  # No suffix means all phases (assume 3-phase)
+        #         return {1, 2, 3}
+        #     return set(int(p) for p in phases_str.split(".") if p)
+
+        # line = self.dss_engine.Line
+        # line_names = line.Name
+        # line_types = [self.element_to_equipment_type_mapper_dict[name] for name in line_names]
+        # line_bus1 = np.char.partition(np.array(line.Bus1), ".")[:, 0]
+        # line_bus2 = np.char.partition(np.array(line.Bus2), ".")[:, 0]
+        # line_phases_str = np.char.partition(np.array(line.Bus1), ".")[:, -1]
+        # line_phases_set = np.array([parse_phases(s) for s in line_phases_str])
+        # line_enabled = np.array(line.Enabled, dtype=np.int8)
+        # line_is_switch = np.zeros(len(line_names), dtype=np.int8)
+        # line_is_open_switch = np.zeros(len(line_names), dtype=np.int8)
+        # line_length_miles = np.array(line.Length) / np.array(
+        #     [DSS_LINE_DISTANCE_UNIT_TO_MILE_CONVERSION.get(unit, 1) for unit in line.Units]
+        # )
+
+        # # characterize open and closed switches
+        # switch_names = self.get_switches_batch().Name
+        # line_is_switch[np.isin(line_names, switch_names)] = 1
+
+        # open_switches = self.get_normally_open_switches()
+        # line_is_open_switch[np.isin(line_names, open_switches)] = 1
+
+        # transformer = self.dss_engine.Transformer
+        # transformer_names = transformer.Name
+        # if len(transformer_names) == 0:
+        #     transformer_types = np.array([], dtype=object)
+        #     transformer_bus1 = np.array([])
+        #     transformer_bus2 = np.array([])
+        #     transformer_phases_set = np.array([], dtype=object)
+        #     transformer_enabled = np.array([], dtype=np.int8)
+        #     transformer_switch = np.array([], dtype=np.int8)
+        #     transformer_open_switch = np.array([], dtype=np.int8)
+        #     transformer_length_miles = np.array([], dtype=np.float64)
+        # else:
+        #     transformer_types = [self.element_to_equipment_type_mapper_dict[name] for name in transformer_names]
+        #     transformer_bus1 = np.char.partition(np.array(np.array(transformer.Buses)[:, 0]), ".")[:, 0]
+        #     transformer_bus2 = np.char.partition(np.array(np.array(transformer.Buses)[:, 1]), ".")[:, 0]
+        #     transformer_phases_str = np.char.partition(np.array(np.array(transformer.Buses)[:, 0]), ".")[:, -1]
+        #     transformer_phases_set = np.array([parse_phases(s) for s in transformer_phases_str])
+        #     transformer_enabled = np.array(transformer.Enabled, dtype=np.int8)
+        #     transformer_switch = np.zeros(len(transformer_names), dtype=np.int8)
+        #     transformer_open_switch = np.zeros(len(transformer_names), dtype=np.int8)
+        #     transformer_length_miles = np.zeros(len(transformer_names), dtype=np.float64)
+
+        # return pd.DataFrame(
+        #     {
+        #         "name": np.concatenate((line_names, transformer_names)),
+        #         "type": np.concatenate((np.array(line_types), np.array(transformer_types))),
+        #         "bus1": np.concatenate((line_bus1, transformer_bus1)),
+        #         "bus2": np.concatenate((line_bus2, transformer_bus2)),
+        #         "phases": np.concatenate((line_phases_set, transformer_phases_set)),
+        #         "enabled": np.concatenate((line_enabled, transformer_enabled)),
+        #         "is_switch": np.concatenate((line_is_switch, transformer_switch)),
+        #         "is_open_switch": np.concatenate((line_is_open_switch, transformer_open_switch)),
+        #         "length_miles": np.concatenate((line_length_miles, transformer_length_miles)),
+        #     }
+        # )
 
         element_activity_status = self.dss_instance.PDElements.First()
         pdelement_list = []

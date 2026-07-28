@@ -7,7 +7,6 @@ def main():
         include_DERs=False,
         include_secondary_network=False,
     )
-    breakpoint()
     dss_data.parsedss()
     dss_data.saveparseddss(folder_name="parsed_data_9500_noder", folder_exist_ok=True)
 
